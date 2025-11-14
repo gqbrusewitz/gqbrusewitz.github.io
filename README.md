@@ -1,1 +1,0 @@
-# gqbrusewitz.github.io
