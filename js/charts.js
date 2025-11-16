@@ -15,10 +15,12 @@ let frequencyChart = null;
 /* -----------------------------------------------
    Main entry point for rendering all analytics
 ------------------------------------------------ */
-export function renderCharts() {
+export function renderCharts(options = {}) {
   const workouts = [...db.workouts];
+  const metric = options.metric || "volume";
+  const exerciseName = options.exerciseName || "all";
 
-  renderWeeklyVolume(workouts);
+  renderWeeklyVolume(workouts, metric, exerciseName);
   renderWorkoutFrequency(workouts);
 }
 
@@ -27,22 +29,31 @@ export function renderCharts() {
    - Uses workout.summary.totalVolume
    - Groups by week (YYYY-Wxx)
 ------------------------------------------------ */
-function renderWeeklyVolume(workouts) {
+function renderWeeklyVolume(workouts, metric, exerciseName) {
   const ctx = document.getElementById("volume-chart");
+  const titleEl = document.getElementById("volume-chart-title");
   if (!ctx) return;
 
   // Group workouts by week key
   const weekly = {};
 
   workouts.forEach(w => {
-    if (!w.date || !w.summary) return;
+    if (!w.date) return;
     const weekKey = getWeekKey(w.date);
-    const vol = w.summary.totalVolume || 0;
-    weekly[weekKey] = (weekly[weekKey] || 0) + vol;
+    const total = getWorkoutMetric(w, metric, exerciseName);
+    if (total === 0) return;
+    weekly[weekKey] = (weekly[weekKey] || 0) + total;
   });
 
   const labels = Object.keys(weekly).sort();
   const data = labels.map(l => weekly[l]);
+
+  const metricLabel = metric === "reps" ? "Reps" : "Volume";
+  const exerciseLabel = exerciseName && exerciseName !== "all" ? ` - ${exerciseName}` : "";
+
+  if (titleEl) {
+    titleEl.textContent = `${metricLabel} per Week${exerciseLabel}`;
+  }
 
   if (volumeChart) volumeChart.destroy();
 
@@ -52,7 +63,7 @@ function renderWeeklyVolume(workouts) {
       labels,
       datasets: [
         {
-          label: "Volume per Week",
+          label: `${metricLabel} per Week${exerciseLabel}`,
           data,
           borderWidth: 1
         }
@@ -67,6 +78,33 @@ function renderWeeklyVolume(workouts) {
       }
     }
   });
+}
+
+/* -----------------------------------------------
+   Calculate total metric for a workout
+------------------------------------------------ */
+function getWorkoutMetric(workout, metric, exerciseName) {
+  let total = 0;
+
+  (workout.exercises || []).forEach(ex => {
+    if (!matchesExercise(ex, exerciseName)) return;
+    (ex.sets || []).forEach(set => {
+      const reps = Number(set.reps || 0);
+      const weight = Number(set.weight || 0);
+      if (metric === "reps") {
+        total += reps;
+      } else {
+        total += reps * weight;
+      }
+    });
+  });
+
+  return total;
+}
+
+function matchesExercise(exercise, exerciseName) {
+  if (!exerciseName || exerciseName === "all") return true;
+  return (exercise.name || "").trim().toLowerCase() === exerciseName.trim().toLowerCase();
 }
 
 /* -----------------------------------------------

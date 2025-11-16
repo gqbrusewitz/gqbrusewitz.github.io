@@ -761,7 +761,54 @@ function initSettingsTab() {
    Analytics UI
 ------------------------------------ */
 function updateAnalyticsUI() {
-  renderCharts();
+  const metricSelect = document.getElementById("analytics-metric");
+  const exerciseSelect = document.getElementById("analytics-exercise");
+
+  if (metricSelect && !metricSelect.dataset.bound) {
+    metricSelect.addEventListener("change", updateAnalyticsUI);
+    metricSelect.dataset.bound = "true";
+  }
+
+  if (exerciseSelect && !exerciseSelect.dataset.bound) {
+    exerciseSelect.addEventListener("change", updateAnalyticsUI);
+    exerciseSelect.dataset.bound = "true";
+  }
+
+  const workouts = [...db.workouts];
+
+  if (exerciseSelect) {
+    const previousValue = exerciseSelect.value || "all";
+    const exerciseNames = new Set();
+
+    workouts.forEach(w => {
+      (w.exercises || []).forEach(ex => {
+        const name = (ex.name || "").trim();
+        if (name) exerciseNames.add(name);
+      });
+    });
+
+    const sortedNames = Array.from(exerciseNames).sort((a, b) => a.localeCompare(b));
+
+    exerciseSelect.innerHTML = "";
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "All exercises";
+    exerciseSelect.appendChild(allOption);
+
+    sortedNames.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      exerciseSelect.appendChild(opt);
+    });
+
+    exerciseSelect.value = sortedNames.includes(previousValue) ? previousValue : "all";
+  }
+
+  const metric = metricSelect ? metricSelect.value : "volume";
+  const exercise = exerciseSelect ? exerciseSelect.value : "all";
+
+  renderCharts({ metric, exerciseName: exercise });
 
   const prListEl = document.getElementById("pr-list");
   const prs = computePRs();

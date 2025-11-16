@@ -129,7 +129,22 @@
         <h2>Analytics</h2>
         <p>These charts are based on your saved workouts.</p>
 
-        <h3>Weekly Volume</h3>
+        <div class="field-row">
+          <label for="analytics-metric">Metric</label>
+          <select id="analytics-metric">
+            <option value="volume">Total Volume</option>
+            <option value="reps">Total Reps</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="analytics-exercise">Exercise Filter</label>
+          <select id="analytics-exercise">
+            <option value="all">All exercises</option>
+          </select>
+        </div>
+
+        <h3 id="volume-chart-title">Weekly Trend</h3>
         <canvas id="volume-chart"></canvas>
 
         <h3>Workout Frequency</h3>
