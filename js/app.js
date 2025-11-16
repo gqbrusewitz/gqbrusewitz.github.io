@@ -59,6 +59,7 @@ function initTabs() {
 ------------------------------------ */
 
 let currentExercises = [];
+let templateSelectEl = null;
 
 function initLogTab() {
   const dateInput = document.getElementById("workout-date");
@@ -66,6 +67,8 @@ function initLogTab() {
   const exerciseList = document.getElementById("exercise-list");
   const addExerciseBtn = document.getElementById("add-exercise");
   const saveWorkoutBtn = document.getElementById("save-workout");
+  templateSelectEl = document.getElementById("template-select");
+  const importTemplateBtn = document.getElementById("import-template");
 
   const summarySets = document.getElementById("summary-sets");
   const summaryReps = document.getElementById("summary-reps");
@@ -99,6 +102,24 @@ function initLogTab() {
     renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
   });
 
+  if (importTemplateBtn) {
+    importTemplateBtn.addEventListener("click", () => {
+      if (!templateSelectEl) return;
+      const workoutId = templateSelectEl.value;
+      if (!workoutId) {
+        alert("Select a saved workout to import as a template.");
+        return;
+      }
+      const workout = db.workouts.find(w => w.id === workoutId);
+      if (!workout) {
+        alert("Workout template not found.");
+        return;
+      }
+      currentExercises = cloneExercises(workout.exercises);
+      renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+    });
+  }
+
   // Save workout
   saveWorkoutBtn.addEventListener("click", () => {
     const { startTime, endTime } = getWorkoutTimes();
@@ -119,6 +140,8 @@ function initLogTab() {
     currentExercises = [];
     notesInput.value = "";
     renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+    refreshTemplateSelectOptions();
+    if (templateSelectEl) templateSelectEl.value = "";
     resetWorkoutTimes();
     durationDisplay.textContent = "Duration: 0:00";
 
@@ -141,6 +164,7 @@ function initLogTab() {
 
   // initial blank list
   renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+  refreshTemplateSelectOptions();
 }
 
 /* -----------------------------------
@@ -315,6 +339,65 @@ function updateSummary(summarySetsEl, summaryRepsEl, summaryVolumeEl) {
   summaryVolumeEl.textContent = totalVolume;
 }
 
+function refreshTemplateSelectOptions() {
+  if (!templateSelectEl) return;
+  templateSelectEl.innerHTML = "";
+  const hasWorkouts = db.workouts.length > 0;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = hasWorkouts ? "Choose a saved workout" : "No saved workouts yet";
+  templateSelectEl.appendChild(placeholder);
+  templateSelectEl.disabled = !hasWorkouts;
+
+  if (!hasWorkouts) {
+    return;
+  }
+
+  const workouts = [...db.workouts].sort((a, b) => {
+    const dateA = a.date || "";
+    const dateB = b.date || "";
+    return dateB.localeCompare(dateA);
+  });
+
+  workouts.forEach(w => {
+    if (!w.id) return;
+    const opt = document.createElement("option");
+    const exerciseCount = (w.exercises || []).length;
+    const dateLabel = w.date || "Undated";
+    opt.value = w.id;
+    opt.textContent = `${dateLabel} • ${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+    templateSelectEl.appendChild(opt);
+  });
+
+  templateSelectEl.value = "";
+}
+
+function cloneExercises(exercises = []) {
+  const safeValue = value => (value === undefined || value === null ? "" : String(value));
+  return (exercises || []).map(ex => {
+    const baseSets = Array.isArray(ex.sets) && ex.sets.length > 0
+      ? ex.sets
+      : [{ reps: "", weight: "", rpe: "", custom: "" }];
+
+    const sets = baseSets.map(set => {
+      const s = set || {};
+      return {
+        reps: safeValue(s.reps),
+        weight: safeValue(s.weight),
+        rpe: safeValue(s.rpe),
+        custom: safeValue(s.custom)
+      };
+    });
+
+    return {
+      name: ex.name || "",
+      muscleGroup: ex.muscleGroup || "",
+      location: ex.location || "home",
+      sets
+    };
+  });
+}
+
 /* -----------------------------------
    History tab
 ------------------------------------ */
@@ -339,6 +422,7 @@ function initHistoryTab() {
     importCSV(text);
     updateHistoryList();
     updateAnalyticsUI();
+    refreshTemplateSelectOptions();
     alert("CSV imported.");
     e.target.value = "";
   });
@@ -466,9 +550,17 @@ function initSettingsTab() {
     importJSON(text);
     updateHistoryList();
     updateAnalyticsUI();
+    refreshTemplateSelectOptions();
     alert("Backup imported.");
     e.target.value = "";
   });
+  const downloadSampleBtn = document.getElementById("download-sample-template");
+  if (downloadSampleBtn) {
+    downloadSampleBtn.addEventListener("click", () => {
+      const sampleContent = JSON.stringify(SAMPLE_WORKOUT_TEMPLATE, null, 2);
+      downloadFile(sampleContent, "sample-workout-template.json", "application/json");
+    });
+  }
 }
 
 /* -----------------------------------
@@ -493,6 +585,53 @@ function updateAnalyticsUI() {
     prListEl.appendChild(li);
   });
 }
+
+const SAMPLE_WORKOUT_TEMPLATE = {
+  title: "Full Body Primer (Sample)",
+  description: "A balanced routine that hits the main movement patterns in about 45 minutes.",
+  exercises: [
+    {
+      name: "Back Squat",
+      muscleGroup: "Legs",
+      location: "gym",
+      sets: [
+        { reps: 5, weight: 135, rpe: 7, custom: "Warm up" },
+        { reps: 5, weight: 185, rpe: 8, custom: "Working" },
+        { reps: 5, weight: 185, rpe: 8, custom: "Working" }
+      ]
+    },
+    {
+      name: "Bench Press",
+      muscleGroup: "Chest",
+      location: "gym",
+      sets: [
+        { reps: 8, weight: 135, rpe: 7, custom: "" },
+        { reps: 8, weight: 145, rpe: 8, custom: "" },
+        { reps: 8, weight: 145, rpe: 8, custom: "" }
+      ]
+    },
+    {
+      name: "Bent-Over Row",
+      muscleGroup: "Back",
+      location: "gym",
+      sets: [
+        { reps: 10, weight: 95, rpe: 7, custom: "" },
+        { reps: 10, weight: 105, rpe: 8, custom: "" },
+        { reps: 10, weight: 105, rpe: 8, custom: "" }
+      ]
+    },
+    {
+      name: "Plank",
+      muscleGroup: "Core",
+      location: "home",
+      sets: [
+        { reps: 60, weight: 0, rpe: "", custom: "seconds" },
+        { reps: 60, weight: 0, rpe: "", custom: "seconds" },
+        { reps: 60, weight: 0, rpe: "", custom: "seconds" }
+      ]
+    }
+  ]
+};
 
 /* -----------------------------------
    Download helper
