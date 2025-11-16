@@ -69,6 +69,8 @@ function initLogTab() {
   const saveWorkoutBtn = document.getElementById("save-workout");
   templateSelectEl = document.getElementById("template-select");
   const importTemplateBtn = document.getElementById("import-template");
+  const importTemplateFileBtn = document.getElementById("import-template-file-btn");
+  const templateFileInput = document.getElementById("template-file-input");
 
   const summarySets = document.getElementById("summary-sets");
   const summaryReps = document.getElementById("summary-reps");
@@ -117,6 +119,34 @@ function initLogTab() {
       }
       currentExercises = cloneExercises(workout.exercises);
       renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+    });
+  }
+
+  if (importTemplateFileBtn && templateFileInput) {
+    importTemplateFileBtn.addEventListener("click", () => {
+      templateFileInput.click();
+    });
+
+    templateFileInput.addEventListener("change", async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const templateData = JSON.parse(text);
+        const exercises = extractExercisesFromTemplate(templateData);
+        if (!exercises) {
+          throw new Error("Invalid template format");
+        }
+        currentExercises = cloneExercises(exercises);
+        renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+        applyTemplateMetadata(templateData, notesInput);
+        alert("Template imported from file.");
+      } catch (err) {
+        console.error("Failed to import template", err);
+        alert("Unable to import that template file. Please make sure it is valid JSON.");
+      } finally {
+        templateFileInput.value = "";
+      }
     });
   }
 
@@ -396,6 +426,35 @@ function cloneExercises(exercises = []) {
       sets
     };
   });
+}
+
+function extractExercisesFromTemplate(template) {
+  if (!template) return null;
+  if (Array.isArray(template)) return template;
+  if (typeof template === "object" && Array.isArray(template.exercises)) {
+    return template.exercises;
+  }
+  return null;
+}
+
+function applyTemplateMetadata(template, notesInput) {
+  if (!notesInput || !template || typeof template !== "object") return;
+  const trimmed = value => typeof value === "string" ? value.trim() : "";
+  const notes = trimmed(template.notes);
+  if (notes) {
+    notesInput.value = notes;
+    return;
+  }
+  if (notesInput.value.trim()) return;
+  const description = trimmed(template.description);
+  if (description) {
+    notesInput.value = description;
+    return;
+  }
+  const title = trimmed(template.title);
+  if (title) {
+    notesInput.value = title;
+  }
 }
 
 /* -----------------------------------
