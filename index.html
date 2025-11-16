@@ -44,6 +44,16 @@
         </div>
 
         <h3>Exercises</h3>
+        <div class="field-row">
+          <label for="template-select">Import saved workout template</label>
+          <div class="template-import-row">
+            <select id="template-select">
+              <option value="">No saved workouts yet</option>
+            </select>
+            <button id="import-template" class="btn-secondary" type="button">Import</button>
+          </div>
+          <small>Use any previously saved workout as a starting template for today.</small>
+        </div>
         <div id="exercise-list"></div>
 
         <button id="add-exercise" class="btn-primary">+ Add Exercise</button>
@@ -156,6 +166,14 @@
         <div class="button-row">
           <button id="export-json" class="btn-secondary">Download Backup JSON</button>
           <input type="file" id="import-json" accept=".json" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Workout Templates</h2>
+        <p>Download a ready-made workout template that you can import or adapt for your own routines.</p>
+        <div class="button-row">
+          <button id="download-sample-template" class="btn-secondary" type="button">Download Sample Workout Template</button>
         </div>
       </div>
     </section>
