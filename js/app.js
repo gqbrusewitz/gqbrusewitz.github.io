@@ -130,18 +130,16 @@ function initLogTab() {
       if (!file) return;
       try {
         const text = await file.text();
-        const templateData = JSON.parse(text);
-        const exercises = extractExercisesFromTemplate(templateData);
+        const exercises = parseExercisesFromCSV(text);
         if (!exercises) {
           throw new Error("Invalid template format");
         }
         currentExercises = cloneExercises(exercises);
         renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
-        applyTemplateMetadata(templateData, notesInput);
-        alert("Template imported from file.");
+        alert("Template imported from CSV.");
       } catch (err) {
         console.error("Failed to import template", err);
-        alert("Unable to import that template file. Please make sure it is valid JSON.");
+        alert("Unable to import that template file. Please make sure it is valid CSV.");
       } finally {
         templateFileInput.value = "";
       }
@@ -426,33 +424,135 @@ function cloneExercises(exercises = []) {
   });
 }
 
-function extractExercisesFromTemplate(template) {
-  if (!template) return null;
-  if (Array.isArray(template)) return template;
-  if (typeof template === "object" && Array.isArray(template.exercises)) {
-    return template.exercises;
+function parseExercisesFromCSV(text) {
+  if (!text) return null;
+  const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
+  if (lines.length <= 1) return null;
+
+  const header = lines[0].split(",").map(col => col.trim());
+  const idx = name => header.indexOf(name);
+  const exerciseIdx = idx("exerciseName");
+  if (exerciseIdx === -1) return null;
+
+  const workoutIdIdx = idx("id");
+  let targetWorkoutId = null;
+
+  const map = {
+    muscleGroup: idx("muscleGroup"),
+    exerciseLocation: idx("exerciseLocation"),
+    setIndex: idx("setIndex"),
+    reps: idx("reps"),
+    weight: idx("weight"),
+    setRPE: idx("setRPE"),
+    setCustom: idx("setCustom")
+  };
+
+  const exercises = new Map();
+  const getValue = (cols, key) => {
+    const columnIndex = map[key];
+    if (columnIndex === undefined || columnIndex < 0) return "";
+    return (cols[columnIndex] || "").trim();
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    if (cols.length === 1 && !cols[0].trim()) continue;
+
+    if (workoutIdIdx >= 0) {
+      const rowWorkoutId = (cols[workoutIdIdx] || "").trim();
+      if (!targetWorkoutId && rowWorkoutId) {
+        targetWorkoutId = rowWorkoutId;
+      }
+      if (targetWorkoutId && rowWorkoutId && rowWorkoutId !== targetWorkoutId) {
+        continue;
+      }
+    }
+
+    const name = (cols[exerciseIdx] || "").trim();
+    if (!name) continue;
+
+    let ex = exercises.get(name);
+    if (!ex) {
+      ex = {
+        name,
+        muscleGroup: getValue(cols, "muscleGroup"),
+        location: normalizeLocation(getValue(cols, "exerciseLocation")),
+        sets: []
+      };
+      exercises.set(name, ex);
+    }
+
+    const setIndexRaw = getValue(cols, "setIndex");
+    const setIndex = setIndexRaw ? Number(setIndexRaw) : null;
+    const hasValidIndex = Number.isFinite(setIndex);
+
+    ex.sets.push({
+      reps: getValue(cols, "reps"),
+      weight: getValue(cols, "weight"),
+      rpe: getValue(cols, "setRPE"),
+      custom: getValue(cols, "setCustom"),
+      _order: hasValidIndex ? setIndex : ex.sets.length
+    });
   }
-  return null;
+
+  const result = Array.from(exercises.values()).map(ex => {
+    if (!ex.sets.length) {
+      ex.sets.push({ reps: "", weight: "", rpe: "", custom: "" });
+    }
+    ex.sets.sort((a, b) => {
+      const aOrder = typeof a._order === "number" ? a._order : 0;
+      const bOrder = typeof b._order === "number" ? b._order : 0;
+      return aOrder - bOrder;
+    });
+    ex.sets.forEach(set => delete set._order);
+    if (!ex.location) ex.location = "home";
+    return ex;
+  });
+
+  return result.length ? result : null;
 }
 
-function applyTemplateMetadata(template, notesInput) {
-  if (!notesInput || !template || typeof template !== "object") return;
-  const trimmed = value => typeof value === "string" ? value.trim() : "";
-  const notes = trimmed(template.notes);
-  if (notes) {
-    notesInput.value = notes;
-    return;
-  }
-  if (notesInput.value.trim()) return;
-  const description = trimmed(template.description);
-  if (description) {
-    notesInput.value = description;
-    return;
-  }
-  const title = trimmed(template.title);
-  if (title) {
-    notesInput.value = title;
-  }
+function normalizeLocation(value) {
+  const normalized = (value || "").toLowerCase();
+  if (normalized === "gym" || normalized === "home") return normalized;
+  return "home";
+}
+
+function buildTemplateCSV(exercises = []) {
+  const header = [
+    "exerciseName",
+    "muscleGroup",
+    "exerciseLocation",
+    "setIndex",
+    "reps",
+    "weight",
+    "setRPE",
+    "setCustom"
+  ];
+  const rows = [header.join(",")];
+  const safeValue = value => (value === undefined || value === null ? "" : String(value));
+
+  exercises.forEach(ex => {
+    const sets = Array.isArray(ex.sets) && ex.sets.length > 0
+      ? ex.sets
+      : [{ reps: "", weight: "", rpe: "", custom: "" }];
+
+    sets.forEach((set, idx) => {
+      const customValue = (set.custom ?? "").replace(/,/g, " ");
+      rows.push([
+        safeValue(ex.name),
+        safeValue(ex.muscleGroup),
+        safeValue(ex.location || "home"),
+        idx + 1,
+        safeValue(set.reps),
+        safeValue(set.weight),
+        safeValue(set.rpe),
+        safeValue(customValue)
+      ].join(","));
+    });
+  });
+
+  return rows.join("\n");
 }
 
 /* -----------------------------------
@@ -614,8 +714,7 @@ function initSettingsTab() {
   const downloadSampleBtn = document.getElementById("download-sample-template");
   if (downloadSampleBtn) {
     downloadSampleBtn.addEventListener("click", () => {
-      const sampleContent = JSON.stringify(SAMPLE_WORKOUT_TEMPLATE, null, 2);
-      downloadFile(sampleContent, "sample-workout-template.json", "application/json");
+      downloadFile(SAMPLE_WORKOUT_TEMPLATE_CSV, "sample-workout-template.csv", "text/csv");
     });
   }
 }
@@ -643,52 +742,70 @@ function updateAnalyticsUI() {
   });
 }
 
-const SAMPLE_WORKOUT_TEMPLATE = {
-  title: "Full Body Primer (Sample)",
-  description: "A balanced routine that hits the main movement patterns in about 45 minutes.",
-  exercises: [
-    {
-      name: "Back Squat",
-      muscleGroup: "Legs",
-      location: "gym",
-      sets: [
-        { reps: 5, weight: 135, rpe: 7, custom: "Warm up" },
-        { reps: 5, weight: 185, rpe: 8, custom: "Working" },
-        { reps: 5, weight: 185, rpe: 8, custom: "Working" }
-      ]
-    },
-    {
-      name: "Bench Press",
-      muscleGroup: "Chest",
-      location: "gym",
-      sets: [
-        { reps: 8, weight: 135, rpe: 7, custom: "" },
-        { reps: 8, weight: 145, rpe: 8, custom: "" },
-        { reps: 8, weight: 145, rpe: 8, custom: "" }
-      ]
-    },
-    {
-      name: "Bent-Over Row",
-      muscleGroup: "Back",
-      location: "gym",
-      sets: [
-        { reps: 10, weight: 95, rpe: 7, custom: "" },
-        { reps: 10, weight: 105, rpe: 8, custom: "" },
-        { reps: 10, weight: 105, rpe: 8, custom: "" }
-      ]
-    },
-    {
-      name: "Plank",
-      muscleGroup: "Core",
-      location: "home",
-      sets: [
-        { reps: 60, weight: 0, rpe: "", custom: "seconds" },
-        { reps: 60, weight: 0, rpe: "", custom: "seconds" },
-        { reps: 60, weight: 0, rpe: "", custom: "seconds" }
-      ]
-    }
-  ]
-};
+const SAMPLE_TEMPLATE_EXERCISES = [
+  {
+    name: "Back Squat",
+    muscleGroup: "Legs",
+    location: "gym",
+    sets: [
+      { reps: 5, weight: 135, rpe: 7, custom: "Warm up" },
+      { reps: 5, weight: 185, rpe: 8, custom: "Working" },
+      { reps: 5, weight: 185, rpe: 8, custom: "Working" }
+    ]
+  },
+  {
+    name: "Bench Press",
+    muscleGroup: "Chest",
+    location: "gym",
+    sets: [
+      { reps: 8, weight: 135, rpe: 7, custom: "" },
+      { reps: 8, weight: 145, rpe: 8, custom: "" },
+      { reps: 8, weight: 145, rpe: 8, custom: "" }
+    ]
+  },
+  {
+    name: "Bent-Over Row",
+    muscleGroup: "Back",
+    location: "gym",
+    sets: [
+      { reps: 10, weight: 95, rpe: 7, custom: "" },
+      { reps: 10, weight: 105, rpe: 8, custom: "" },
+      { reps: 10, weight: 105, rpe: 8, custom: "" }
+    ]
+  },
+  {
+    name: "Overhead Press",
+    muscleGroup: "Shoulders",
+    location: "home",
+    sets: [
+      { reps: 10, weight: 65, rpe: 7, custom: "" },
+      { reps: 10, weight: 70, rpe: 8, custom: "" },
+      { reps: 10, weight: 70, rpe: 8, custom: "" }
+    ]
+  },
+  {
+    name: "Romanian Deadlift",
+    muscleGroup: "Hamstrings",
+    location: "gym",
+    sets: [
+      { reps: 8, weight: 155, rpe: 7, custom: "" },
+      { reps: 8, weight: 175, rpe: 8, custom: "" },
+      { reps: 8, weight: 175, rpe: 8, custom: "" }
+    ]
+  },
+  {
+    name: "Plank",
+    muscleGroup: "Core",
+    location: "home",
+    sets: [
+      { reps: 60, weight: 0, rpe: "", custom: "seconds" },
+      { reps: 60, weight: 0, rpe: "", custom: "seconds" },
+      { reps: 60, weight: 0, rpe: "", custom: "seconds" }
+    ]
+  }
+];
+
+const SAMPLE_WORKOUT_TEMPLATE_CSV = buildTemplateCSV(SAMPLE_TEMPLATE_EXERCISES);
 
 /* -----------------------------------
    Download helper
