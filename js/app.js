@@ -8,6 +8,7 @@ import {
   updateSettings,
   exportCSV,
   importCSV,
+  getWorkoutName,
   computePRs
 } from "./storage.js";
 import { initTimers, getWorkoutTimes, resetWorkoutTimes } from "./timer.js";
@@ -390,8 +391,9 @@ function refreshTemplateSelectOptions() {
     const opt = document.createElement("option");
     const exerciseCount = (w.exercises || []).length;
     const dateLabel = w.date || "Undated";
+    const workoutLabel = getWorkoutName(w);
     opt.value = w.id;
-    opt.textContent = `${dateLabel} • ${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+    opt.textContent = `${workoutLabel} — ${dateLabel} • ${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
     templateSelectEl.appendChild(opt);
   });
 
@@ -596,11 +598,13 @@ function updateHistoryList() {
   let workouts = [...db.workouts];
 
   if (query) {
-    workouts = workouts.filter(w =>
-      (w.exercises || []).some(ex =>
+    workouts = workouts.filter(w => {
+      const nameMatch = getWorkoutName(w).toLowerCase().includes(query);
+      const exerciseMatch = (w.exercises || []).some(ex =>
         (ex.name || "").toLowerCase().includes(query)
-      )
-    );
+      );
+      return nameMatch || exerciseMatch;
+    });
   }
 
   workouts.sort((a, b) => {
@@ -635,6 +639,40 @@ function updateHistoryList() {
     const sets = w.summary?.totalSets || 0;
     const duration = w.summary?.durationSeconds || 0;
     const mins = Math.round(duration / 60);
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "history-title";
+
+    const title = document.createElement("div");
+    title.className = "history-name";
+    title.textContent = getWorkoutName(w);
+
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+
+    const renameBtn = document.createElement("button");
+    renameBtn.type = "button";
+    renameBtn.className = "history-rename";
+    renameBtn.textContent = "Rename";
+    renameBtn.addEventListener("click", () => {
+      const currentName = getWorkoutName(w);
+      const newName = prompt("New name for this workout", currentName);
+      if (newName === null) return;
+      const trimmed = newName.trim();
+      if (!trimmed) {
+        alert("Workout name cannot be empty.");
+        return;
+      }
+      w.name = trimmed;
+      saveDB();
+      updateHistoryList();
+      refreshTemplateSelectOptions();
+    });
+
+    actions.appendChild(renameBtn);
+    titleRow.appendChild(title);
+    titleRow.appendChild(actions);
+    item.appendChild(titleRow);
 
     const meta = document.createElement("div");
     meta.className = "history-meta";

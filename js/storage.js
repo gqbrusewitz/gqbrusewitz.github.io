@@ -9,6 +9,20 @@ export const db = {
 
 const STORAGE_KEY = "workoutDB_v1";
 
+function buildWorkoutName(date, exercises = []) {
+  const dateLabel = date || new Date().toISOString().split("T")[0];
+  const firstNamedExercise = (exercises || []).find(ex => (ex.name || "").trim());
+  if (firstNamedExercise) {
+    return `${firstNamedExercise.name.trim()} (${dateLabel})`;
+  }
+  return `Workout ${dateLabel}`;
+}
+
+export function getWorkoutName(workout) {
+  if (!workout) return "Workout";
+  return (workout.name || "").trim() || buildWorkoutName(workout.date, workout.exercises);
+}
+
 /* -----------------------------
    Load/save database
 ------------------------------ */
@@ -17,7 +31,12 @@ export function loadDB() {
   if (!raw) return;
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.workouts) db.workouts = parsed.workouts;
+    if (parsed.workouts) {
+      db.workouts = parsed.workouts.map(w => ({
+        ...w,
+        name: (w.name || "").trim() || buildWorkoutName(w.date, w.exercises)
+      }));
+    }
     if (parsed.settings) db.settings = { ...db.settings, ...parsed.settings };
   } catch (e) {
     console.error("Failed to parse DB", e);
@@ -35,6 +54,7 @@ export function createWorkoutFromForm(formData) {
   const now = new Date();
   const id = `w_${now.getTime()}`;
   const {
+    name,
     date,
     notes,
     exercises,
@@ -46,6 +66,7 @@ export function createWorkoutFromForm(formData) {
 
   const workout = {
     id,
+    name: (name || "").trim() || buildWorkoutName(date, exercises),
     date,
     notes,
     exercises,
@@ -106,6 +127,7 @@ export function exportCSV() {
   rows.push([
     "id",
     "date",
+    "workoutName",
     "notes",
     "exerciseName",
     "muscleGroup",
@@ -122,14 +144,15 @@ export function exportCSV() {
   ]);
 
   db.workouts.forEach(w => {
-    (w.exercises || []).forEach(ex => {
-      (ex.sets || []).forEach((s, i) => {
-        rows.push([
-          w.id,
-          w.date,
-          (w.notes || "").replace(/\n/g, " "),
-          ex.name,
-          ex.muscleGroup || "",
+      (w.exercises || []).forEach(ex => {
+        (ex.sets || []).forEach((s, i) => {
+          rows.push([
+            w.id,
+            w.date,
+            (getWorkoutName(w) || "").replace(/\n/g, " ").replace(/,/g, " "),
+            (w.notes || "").replace(/\n/g, " "),
+            ex.name,
+            ex.muscleGroup || "",
           ex.location || "home",
           i + 1,
           s.reps,
@@ -161,6 +184,7 @@ export function importCSV(text) {
   const map = {
     id: idx("id"),
     date: idx("date"),
+    workoutName: idx("workoutName"),
     notes: idx("notes"),
     exerciseName: idx("exerciseName"),
     muscleGroup: idx("muscleGroup"),
@@ -187,6 +211,7 @@ export function importCSV(text) {
       workoutsMap.set(wid, {
         id: wid,
         date: map.date >= 0 ? cols[map.date] : "",
+        name: map.workoutName >= 0 ? cols[map.workoutName] : "",
         notes: map.notes >= 0 ? cols[map.notes] : "",
         exercises: [],
         startTime: null,
@@ -223,7 +248,10 @@ export function importCSV(text) {
     });
   }
 
-  workoutsMap.forEach(w => db.workouts.push(w));
+  workoutsMap.forEach(w => {
+    w.name = (w.name || "").trim() || buildWorkoutName(w.date, w.exercises);
+    db.workouts.push(w);
+  });
   saveDB();
 }
 

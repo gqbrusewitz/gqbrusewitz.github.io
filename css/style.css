@@ -244,6 +244,37 @@ button {
   border-bottom: none;
 }
 
+.history-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.history-name {
+  font-weight: 600;
+}
+
+.history-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.history-rename {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--text);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.history-rename:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .history-meta {
   font-size: 0.8rem;
   opacity: 0.8;
