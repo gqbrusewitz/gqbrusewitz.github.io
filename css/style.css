@@ -185,12 +185,17 @@ button {
 
 .template-import-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
 
 .template-import-row select {
   flex: 1;
+}
+
+.template-import-row button {
+  white-space: nowrap;
 }
 
 /* Exercise editor */

@@ -50,9 +50,11 @@
             <select id="template-select">
               <option value="">No saved workouts yet</option>
             </select>
-            <button id="import-template" class="btn-secondary" type="button">Import</button>
+            <button id="import-template" class="btn-secondary" type="button">Use Saved</button>
+            <button id="import-template-file-btn" class="btn-secondary" type="button">Upload JSON</button>
+            <input type="file" id="template-file-input" accept=".json" hidden>
           </div>
-          <small>Use any previously saved workout as a starting template for today.</small>
+          <small>Use a previously saved workout or upload a JSON template (like the sample download) as a starting point.</small>
         </div>
         <div id="exercise-list"></div>
 
