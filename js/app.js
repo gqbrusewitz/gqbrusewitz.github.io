@@ -11,7 +11,6 @@ import {
   getWorkoutName,
   computePRs,
   getAllTemplates,
-  saveCustomTemplate,
   getExerciseLibrary,
   addExerciseToLibrary
 } from "./storage.js";
@@ -76,9 +75,6 @@ function initLogTab() {
   const importTemplateBtn = document.getElementById("import-template");
   const importTemplateFileBtn = document.getElementById("import-template-file-btn");
   const templateFileInput = document.getElementById("template-file-input");
-  const templateNameInput = document.getElementById("template-name");
-  const templateDescriptionInput = document.getElementById("template-description");
-  const saveTemplateBtn = document.getElementById("save-template");
 
   const summarySets = document.getElementById("summary-sets");
   const summaryReps = document.getElementById("summary-reps");
@@ -161,22 +157,6 @@ function initLogTab() {
       } finally {
         templateFileInput.value = "";
       }
-    });
-  }
-
-  if (saveTemplateBtn) {
-    saveTemplateBtn.addEventListener("click", () => {
-      const name = (templateNameInput?.value || "").trim();
-      if (!name) {
-        alert("Give your template a name first.");
-        return;
-      }
-      const description = templateDescriptionInput?.value || "";
-      saveCustomTemplate({ name, description, exercises: cloneExercises(currentExercises) });
-      refreshTemplateSelectOptions();
-      if (templateNameInput) templateNameInput.value = "";
-      if (templateDescriptionInput) templateDescriptionInput.value = "";
-      alert("Template saved. You can load it anytime from the picker.");
     });
   }
 
