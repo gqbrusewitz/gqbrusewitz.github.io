@@ -16,6 +16,33 @@ html[data-theme="dark"] {
   --border: #2a2a3a;
 }
 
+html[data-theme="high-contrast"] {
+  --bg: #000000;
+  --bg-card: #0a0a0a;
+  --text: #ffffff;
+  --accent: #ffcc00;
+  --accent-soft: rgba(255, 204, 0, 0.16);
+  --border: #ffffff;
+}
+
+html[data-theme="midnight"] {
+  --bg: #0b1224;
+  --bg-card: #10182b;
+  --text: #e6ebff;
+  --accent: #7ab0ff;
+  --accent-soft: rgba(122, 176, 255, 0.16);
+  --border: #1f2940;
+}
+
+html[data-theme="neon"] {
+  --bg: #0c0f14;
+  --bg-card: #121826;
+  --text: #e7f5ff;
+  --accent: #2ef9a0;
+  --accent-soft: rgba(46, 249, 160, 0.16);
+  --border: #2ef9a0;
+}
+
 *,
 *::before,
 *::after {
@@ -28,6 +55,18 @@ body {
     sans-serif;
   background: var(--bg);
   color: var(--text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .app-header {
@@ -45,6 +84,27 @@ body {
 .app-header h1 {
   font-size: 1.1rem;
   margin: 0;
+}
+
+.theme-picker select {
+  appearance: none;
+  background: var(--bg-card);
+  padding-right: 2.25rem;
+}
+
+.theme-picker {
+  position: relative;
+}
+
+.theme-picker::after {
+  content: "▼";
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  pointer-events: none;
+  opacity: 0.7;
 }
 
 .tabs {
