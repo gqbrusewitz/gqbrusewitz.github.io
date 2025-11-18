@@ -11,6 +11,11 @@ export const db = {
 };
 
 const STORAGE_KEY = "workoutDB_v1";
+const LEGACY_STORAGE_KEYS = [
+  "workoutDB",
+  "workout-db",
+  "workout_db",
+];
 
 const DEFAULT_EXERCISES = [
   {
@@ -476,22 +481,17 @@ export function getWorkoutName(workout) {
    Load/save database
 ------------------------------ */
 export function loadDB() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed.workouts) {
-        db.workouts = parsed.workouts.map(w => ({
-          ...w,
-          name: (w.name || "").trim() || buildWorkoutName(w.date, w.exercises)
-        }));
-      }
-      if (Array.isArray(parsed.templates)) db.templates = parsed.templates.map(t => cloneTemplate(t));
-      if (Array.isArray(parsed.exerciseLibrary)) db.exerciseLibrary = parsed.exerciseLibrary.map(ex => normalizeExercise(ex));
-      if (parsed.settings) db.settings = { ...db.settings, ...parsed.settings };
-    } catch (e) {
-      console.error("Failed to parse DB", e);
+  const parsed = readLatestDB();
+  if (parsed) {
+    if (parsed.workouts) {
+      db.workouts = parsed.workouts.map(w => ({
+        ...w,
+        name: (w.name || "").trim() || buildWorkoutName(w.date, w.exercises)
+      }));
     }
+    if (Array.isArray(parsed.templates)) db.templates = parsed.templates.map(t => cloneTemplate(t));
+    if (Array.isArray(parsed.exerciseLibrary)) db.exerciseLibrary = parsed.exerciseLibrary.map(ex => normalizeExercise(ex));
+    if (parsed.settings) db.settings = { ...db.settings, ...parsed.settings };
   }
 
   mergeDefaultLibrary();
@@ -842,6 +842,35 @@ function mergeDefaultLibrary() {
     }
   });
   db.exerciseLibrary = db.exerciseLibrary.map(ex => normalizeExercise(ex));
+}
+
+function readLatestDB() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const parsed = safeParseDB(raw);
+    if (parsed) return parsed;
+  }
+
+  for (const legacyKey of LEGACY_STORAGE_KEYS) {
+    const legacyRaw = localStorage.getItem(legacyKey);
+    if (!legacyRaw) continue;
+    const parsedLegacy = safeParseDB(legacyRaw);
+    if (parsedLegacy) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedLegacy));
+      return parsedLegacy;
+    }
+  }
+
+  return null;
+}
+
+function safeParseDB(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Failed to parse DB", e);
+    return null;
+  }
 }
 
 function cloneTemplate(template = {}, builtIn = false) {
