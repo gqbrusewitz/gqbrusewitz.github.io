@@ -1,30 +1,24 @@
 // js/theme.js
 import { db, updateSettings, saveDB } from "./storage.js";
 
+const THEMES = ["light", "dark", "high-contrast", "midnight", "neon"];
+
 /*
   Theme system:
-  - Toggles between "light" and "dark"
+  - Allows multiple named themes
   - Saves user preference to db.settings.theme
   - Applies CSS theme via <html data-theme="...">
 */
 
-export function initTheme(toggleButton) {
-  // Load saved theme or default to light
-  const saved = db.settings.theme || "light";
+export function initTheme(selectEl) {
+  const saved = sanitizeTheme(db.settings.theme || "light");
   applyTheme(saved);
+  updateThemeSelect(selectEl, saved);
 
-  // Update toggle button text
-  updateButtonLabel(toggleButton, saved);
-
-  toggleButton.addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme");
-    const next = current === "light" ? "dark" : "light";
-
-    applyTheme(next);
-    updateSettings({ theme: next });
-    saveDB();
-
-    updateButtonLabel(toggleButton, next);
+  selectEl?.addEventListener("change", event => {
+    const nextTheme = sanitizeTheme(event.target.value);
+    applyTheme(nextTheme);
+    updateSettings({ theme: nextTheme });
   });
 }
 
@@ -36,9 +30,14 @@ function applyTheme(themeName) {
 }
 
 /* ------------------------------------
-   Update toggle button label text
+   Keep the dropdown in sync
 ------------------------------------- */
-function updateButtonLabel(btn, theme) {
-  if (!btn) return;
-  btn.textContent = theme === "light" ? "Dark Mode" : "Light Mode";
+function updateThemeSelect(selectEl, theme) {
+  if (!selectEl) return;
+  selectEl.value = theme;
+}
+
+function sanitizeTheme(theme) {
+  if (THEMES.includes(theme)) return theme;
+  return "light";
 }

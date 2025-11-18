@@ -17,11 +17,21 @@
 <body>
   <header class="app-header">
     <h1>Workout Log</h1>
-    <button id="theme-toggle" class="btn-secondary" title="Toggle theme">Toggle Theme</button>
+    <label class="theme-picker" for="theme-select">
+      <span class="sr-only">Theme</span>
+      <select id="theme-select" class="btn-secondary">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="high-contrast">High Contrast</option>
+        <option value="midnight">Midnight</option>
+        <option value="neon">Neon</option>
+      </select>
+    </label>
   </header>
 
   <nav class="tabs">
     <button class="tab-button active" data-tab="log">Log Workout</button>
+    <button class="tab-button" data-tab="library">Exercise Library</button>
     <button class="tab-button" data-tab="history">History</button>
     <button class="tab-button" data-tab="analytics">Analytics</button>
     <button class="tab-button" data-tab="settings">Settings</button>
@@ -98,7 +108,10 @@
           <span id="rest-display" class="pill">Ready</span>
         </div>
       </div>
+    </section>
 
+    <!-- Exercise Library -->
+    <section id="tab-library" class="tab">
       <div class="card">
         <h2>Exercise Library</h2>
         <p>Grab a pre-filled move or add your own exercise for quick reuse.</p>

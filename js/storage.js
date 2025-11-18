@@ -6,6 +6,7 @@ export const db = {
   settings: {
     units: "lbs",
     defaultRestSeconds: 60,
+    theme: "light",
   }
 };
 

@@ -22,11 +22,12 @@ import { renderCharts } from "./charts.js";
 document.addEventListener("DOMContentLoaded", () => {
   loadDB();
 
-  const themeToggleBtn = document.getElementById("theme-toggle");
-  initTheme(themeToggleBtn);
+  const themeSelect = document.getElementById("theme-select");
+  initTheme(themeSelect);
 
   initTabs();
   initLogTab();
+  initLibraryTab();
   initHistoryTab();
   initSettingsTab();
   updateHistoryList();
@@ -63,6 +64,7 @@ function initTabs() {
 
 let currentExercises = [];
 let templateSelectEl = null;
+let logUI = {};
 
 function initLogTab() {
   const dateInput = document.getElementById("workout-date");
@@ -90,13 +92,12 @@ function initLogTab() {
   const endWorkoutBtn = document.getElementById("end-workout");
   const durationDisplay = document.getElementById("workout-duration");
 
-  const exerciseSearchInput = document.getElementById("exercise-search");
-  const exerciseLibraryContainer = document.getElementById("exercise-library-list");
-  const libraryNameInput = document.getElementById("custom-exercise-name");
-  const libraryGroupInput = document.getElementById("custom-exercise-group");
-  const libraryLocationSelect = document.getElementById("custom-exercise-location");
-  const libraryNotesInput = document.getElementById("custom-exercise-notes");
-  const addLibraryExerciseBtn = document.getElementById("add-exercise-library");
+  logUI = {
+    exerciseList,
+    summarySets,
+    summaryReps,
+    summaryVolume
+  };
 
   // default date: today
   const today = new Date().toISOString().split("T")[0];
@@ -224,6 +225,20 @@ function initLogTab() {
   // initial blank list
   renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
   refreshTemplateSelectOptions();
+}
+
+/* -----------------------------------
+   Exercise Library tab
+------------------------------------ */
+function initLibraryTab() {
+  const exerciseSearchInput = document.getElementById("exercise-search");
+  const exerciseLibraryContainer = document.getElementById("exercise-library-list");
+  const libraryNameInput = document.getElementById("custom-exercise-name");
+  const libraryGroupInput = document.getElementById("custom-exercise-group");
+  const libraryLocationSelect = document.getElementById("custom-exercise-location");
+  const libraryNotesInput = document.getElementById("custom-exercise-notes");
+  const addLibraryExerciseBtn = document.getElementById("add-exercise-library");
+
   initExerciseLibrary({
     searchInput: exerciseSearchInput,
     container: exerciseLibraryContainer,
@@ -240,7 +255,15 @@ function initLogTab() {
         notes: exercise.notes || "",
         sets: [{ reps: "", weight: "", rpe: "", custom: "" }]
       });
-      renderExerciseList(exerciseList, summarySets, summaryReps, summaryVolume);
+      const { exerciseList, summarySets, summaryReps, summaryVolume } = logUI;
+      if (exerciseList) {
+        renderExerciseList(
+          exerciseList,
+          summarySets,
+          summaryReps,
+          summaryVolume
+        );
+      }
     }
   });
 }
