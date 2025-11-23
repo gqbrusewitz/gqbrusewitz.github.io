@@ -8,6 +8,7 @@
   <!-- Chart.js for the composition chart -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
   <header class="app-header">
     <div class="app-header-inner">
@@ -18,7 +19,8 @@
 
   <main class="app-main">
     <section class="cards-grid">
-      <!-- Current stats card -->
+
+      <!-- Current stats -->
       <section class="card">
         <h2>Current Stats</h2>
         <p class="card-subtitle">Enter your latest numbers from your scale.</p>
@@ -48,12 +50,10 @@
         </div>
       </section>
 
-      <!-- What-if goal card -->
+      <!-- What-if goal -->
       <section class="card">
         <h2>What-If Goal</h2>
-        <p class="card-subtitle">
-          Choose a goal type, enter a value (or two), and we’ll calculate the rest.
-        </p>
+        <p class="card-subtitle">Choose a goal type and enter values.</p>
 
         <div class="field">
           <label for="targetType">Goal type</label>
@@ -75,7 +75,7 @@
           <input id="targetValue" type="number" step="0.01" />
         </div>
 
-        <!-- Secondary goal value (for combined goals) -->
+        <!-- Secondary goal value -->
         <div class="field" id="targetValue2Wrapper" style="display:none;">
           <label id="targetValue2Label" for="targetValue2">Second goal value</label>
           <input id="targetValue2" type="number" step="0.01" />
@@ -86,7 +86,7 @@
         </small>
 
         <button id="copyCurrentToTarget" class="button button-secondary" style="margin-top:0.6rem;">
-          Reset goal to “keep same weight”
+          Reset to “same weight”
         </button>
 
         <div class="summary" style="margin-top:0.8rem;">
@@ -99,7 +99,7 @@
         </div>
       </section>
 
-      <!-- Results card -->
+      <!-- Differences -->
       <section class="card">
         <h2>Changes Needed</h2>
         <p class="card-subtitle">How different is your what-if from today?</p>
@@ -108,12 +108,10 @@
           <span class="result-label">Weight difference:</span>
           <span id="weightDiffText" class="result-value">No change</span>
         </div>
-
         <div class="result-line">
           <span class="result-label">Body fat change:</span>
           <span id="fatChangeText" class="result-value">No change</span>
         </div>
-
         <div class="result-line">
           <span class="result-label">Muscle change:</span>
           <span id="muscleChangeText" class="result-value">No change</span>
@@ -123,30 +121,41 @@
 
         <h3>Quick Summary</h3>
         <p id="quickSummary" class="quick-summary">
-          Enter your current stats and pick a what-if goal to see the breakdown.
+          Enter your stats and select a goal to see differences.
         </p>
       </section>
 
-      <!-- Saved scenarios card -->
+      <!-- Scenarios -->
       <section class="card">
         <h2>Saved Scenarios</h2>
-        <p class="card-subtitle">Save different what-ifs to revisit later.</p>
+        <p class="card-subtitle">Save what-if states & load them anytime.</p>
 
         <div class="field inline-field">
           <label for="scenarioName">Scenario name</label>
-          <input id="scenarioName" type="text" placeholder="e.g. Spring Cut, Lean Bulk" />
+          <input id="scenarioName" type="text" placeholder="e.g. Spring Cut" />
         </div>
 
-        <button id="saveScenarioButton" class="button">
-          Save current what-if
-        </button>
+        <button id="saveScenarioButton" class="button">Save current state</button>
 
-        <ul id="scenarioList" class="scenario-list">
-          <!-- Scenarios will be injected here -->
-        </ul>
+        <ul id="scenarioList" class="scenario-list"></ul>
       </section>
+
     </section>
 
-    <!-- Chart card spans full width on small screens -->
+    <!-- Chart -->
     <section class="card chart-card">
       <h2>Body Composition Chart</h2>
+      <p class="card-subtitle">Current vs What-If (Stacked)</p>
+      <canvas id="compositionChart"></canvas>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      Built for “what-if” experiments — deploy on GitHub Pages and tweak freely.
+    </p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
