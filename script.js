@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const targetTypeEl = document.getElementById("targetType");
   const targetValueEl = document.getElementById("targetValue");
+  const targetValue2El = document.getElementById("targetValue2");
 
   if (targetTypeEl) {
     targetTypeEl.addEventListener("change", recalc);
@@ -19,14 +20,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (targetValueEl) {
     targetValueEl.addEventListener("input", recalc);
   }
+  if (targetValue2El) {
+    targetValue2El.addEventListener("input", recalc);
+  }
 
   const resetBtn = document.getElementById("copyCurrentToTarget");
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
       const typeEl = document.getElementById("targetType");
       const valueEl = document.getElementById("targetValue");
+      const value2El = document.getElementById("targetValue2");
+
       if (typeEl) typeEl.value = "same_weight";
       if (valueEl) valueEl.value = "";
+      if (value2El) value2El.value = "";
+
       recalc();
     });
   }
@@ -54,48 +62,108 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
+/* Goal reading and UI helpers */
+
 function getGoal() {
   const typeEl = document.getElementById("targetType");
   const valueEl = document.getElementById("targetValue");
+  const value2El = document.getElementById("targetValue2");
+
   const type = typeEl ? typeEl.value : "same_weight";
-  const valRaw = valueEl ? parseFloat(valueEl.value) : NaN;
-  const value = Number.isFinite(valRaw) ? valRaw : 0;
+
+  const v1Raw = valueEl ? parseFloat(valueEl.value) : NaN;
+  const v2Raw = value2El ? parseFloat(value2El.value) : NaN;
+
+  const value = Number.isFinite(v1Raw) ? v1Raw : 0;
+  const value2 = Number.isFinite(v2Raw) ? v2Raw : 0;
 
   updateGoalHelper(type);
   updateGoalValueEnabled(type);
 
-  return { type, value };
+  return { type, value, value2 };
 }
 
 function updateGoalHelper(type) {
   const helper = document.getElementById("targetHelper");
-  if (!helper) return;
+  const label1 = document.getElementById("targetValueLabel");
+  const label2 = document.getElementById("targetValue2Label");
 
-  const map = {
-    same_weight:
-      "Using your current weight, fat, and muscle as the target.",
-    target_weight:
-      "Set a new total weight. Fat & muscle keep the same proportions.",
-    target_fat_mass:
-      "Set a specific fat mass (lbs). Muscle and bone stay the same.",
-    target_fat_pct:
-      "Set a target body fat percentage. Muscle and bone stay the same.",
-    target_muscle_mass:
-      "Set a specific muscle mass (lbs). Fat and bone stay the same.",
-    target_muscle_pct:
-      "Set a target muscle percentage. Fat and bone stay the same.",
-  };
+  if (!helper || !label1 || !label2) return;
 
-  helper.textContent = map[type] || "";
+  let h = "";
+  let l1 = "Goal value";
+  let l2 = "Second goal value";
+
+  switch (type) {
+    case "same_weight":
+      h = "Using your current weight, fat, and muscle as the target.";
+      l1 = "Goal value";
+      break;
+
+    case "target_weight":
+      h = "Set a new total weight. Fat & muscle keep the same proportions.";
+      l1 = "Target weight (lbs)";
+      break;
+
+    case "target_fat_mass":
+      h = "Set a specific fat mass (lbs). Muscle and bone stay the same.";
+      l1 = "Target fat mass (lbs)";
+      break;
+
+    case "target_fat_pct":
+      h = "Set a target body fat percentage. Muscle and bone stay the same.";
+      l1 = "Target body fat (%)";
+      break;
+
+    case "target_muscle_mass":
+      h = "Set a specific muscle mass (lbs). Fat and bone stay the same.";
+      l1 = "Target muscle mass (lbs)";
+      break;
+
+    case "target_muscle_pct":
+      h = "Set a target muscle percentage. Fat and bone stay the same.";
+      l1 = "Target muscle (%)";
+      break;
+
+    case "target_weight_fat_pct":
+      h = "Set a target weight and body fat percentage.";
+      l1 = "Target weight (lbs)";
+      l2 = "Target body fat (%)";
+      break;
+
+    case "target_weight_muscle_pct":
+      h = "Set a target weight and muscle percentage.";
+      l1 = "Target weight (lbs)";
+      l2 = "Target muscle (%)";
+      break;
+  }
+
+  helper.textContent = h;
+  label1.textContent = l1;
+  label2.textContent = l2;
 }
 
 function updateGoalValueEnabled(type) {
   const valueEl = document.getElementById("targetValue");
-  if (!valueEl) return;
+  const value2El = document.getElementById("targetValue2");
+  const value2Wrapper = document.getElementById("targetValue2Wrapper");
+
+  if (!valueEl || !value2El || !value2Wrapper) return;
+
+  // Default: hide second field
+  value2Wrapper.style.display = "none";
+  value2El.disabled = true;
 
   if (type === "same_weight") {
     valueEl.disabled = true;
     valueEl.placeholder = "No value needed for this goal";
+    valueEl.value = "";
+  } else if (type === "target_weight_fat_pct" || type === "target_weight_muscle_pct") {
+    valueEl.disabled = false;
+    valueEl.placeholder = "Enter target weight";
+    value2Wrapper.style.display = "";
+    value2El.disabled = false;
+    value2El.placeholder = "Enter target %";
   } else {
     valueEl.disabled = false;
     valueEl.placeholder = "Enter your goal";
@@ -137,11 +205,12 @@ function computeTargetFromGoal(current, goal) {
   let tf = cf;
   let tm = cm;
 
-  const goalValue = goal.value;
+  const v1 = goal.value;
+  const v2 = goal.value2;
 
   switch (goal.type) {
     case "target_weight": {
-      tw = Math.max(goalValue, 0);
+      tw = Math.max(v1, 0);
       if (cw > 0) {
         const fatRatio = cf / cw;
         const muscleRatio = cm / cw;
@@ -152,14 +221,14 @@ function computeTargetFromGoal(current, goal) {
     }
 
     case "target_fat_mass": {
-      tf = Math.max(goalValue, 0);
+      tf = Math.max(v1, 0);
       tm = cm;
       tw = tf + tm + currentBone;
       break;
     }
 
     case "target_fat_pct": {
-      const p = goalValue / 100;
+      const p = v1 / 100;
       if (p > 0 && p < 1) {
         tw = (cm + currentBone) / (1 - p);
         tf = tw * p;
@@ -169,18 +238,43 @@ function computeTargetFromGoal(current, goal) {
     }
 
     case "target_muscle_mass": {
-      tm = Math.max(goalValue, 0);
+      tm = Math.max(v1, 0);
       tf = cf;
       tw = tf + tm + currentBone;
       break;
     }
 
     case "target_muscle_pct": {
-      const p = goalValue / 100;
+      const p = v1 / 100;
       if (p > 0 && p < 1) {
         tw = (cf + currentBone) / (1 - p);
         tm = tw * p;
         tf = cf;
+      }
+      break;
+    }
+
+    case "target_weight_fat_pct": {
+      const targetWeight = Math.max(v1, 0);
+      const p = v2 / 100; // fat %
+      tw = targetWeight;
+      if (tw > 0 && p >= 0 && p <= 1) {
+        tf = tw * p;
+        // keep bone approx same as current, muscle is remainder
+        tm = tw - tf - currentBone;
+        if (tm < 0) tm = 0;
+      }
+      break;
+    }
+
+    case "target_weight_muscle_pct": {
+      const targetWeight = Math.max(v1, 0);
+      const p = v2 / 100; // muscle %
+      tw = targetWeight;
+      if (tw > 0 && p >= 0 && p <= 1) {
+        tm = tw * p;
+        tf = tw - tm - currentBone;
+        if (tf < 0) tf = 0;
       }
       break;
     }
@@ -238,9 +332,9 @@ function recalc() {
   const fatDiff = targetComp.fatMass - currentComp.fatMass;
   const muscleDiff = targetComp.muscleMass - currentComp.muscleMass;
 
-  setText("weightDiffText", diffText(weightDiff, "weight"));
-  setText("fatChangeText", diffText(fatDiff, "fat"));
-  setText("muscleChangeText", diffText(muscleDiff, "muscle"));
+  setText("weightDiffText", diffText(weightDiff));
+  setText("fatChangeText", diffText(fatDiff));
+  setText("muscleChangeText", diffText(muscleDiff));
 
   updateQuickSummary(weightDiff, fatDiff, muscleDiff);
 
@@ -248,7 +342,7 @@ function recalc() {
   updateChart(currentComp, targetComp);
 }
 
-function diffText(delta, label) {
+function diffText(delta) {
   if (!Number.isFinite(delta) || Math.abs(delta) < 0.01) {
     return "No change";
   }
@@ -373,14 +467,18 @@ function saveCurrentScenario() {
   const nameInput = document.getElementById("scenarioName");
   const typeEl = document.getElementById("targetType");
   const valueEl = document.getElementById("targetValue");
+  const value2El = document.getElementById("targetValue2");
 
   const name =
     (nameInput && nameInput.value.trim()) ||
     `Scenario ${scenarios.length + 1}`;
 
   const goalType = typeEl ? typeEl.value : "same_weight";
-  const goalValRaw = valueEl ? parseFloat(valueEl.value) : NaN;
-  const goalValue = Number.isFinite(goalValRaw) ? goalValRaw : 0;
+  const v1Raw = valueEl ? parseFloat(valueEl.value) : NaN;
+  const v2Raw = value2El ? parseFloat(value2El.value) : NaN;
+
+  const goalValue = Number.isFinite(v1Raw) ? v1Raw : 0;
+  const goalValue2 = Number.isFinite(v2Raw) ? v2Raw : 0;
 
   const scenario = {
     id: Date.now(),
@@ -393,6 +491,7 @@ function saveCurrentScenario() {
     goal: {
       type: goalType,
       value: goalValue,
+      value2: goalValue2,
     },
   };
 
@@ -461,11 +560,26 @@ function applyScenario(scenario) {
 
   const typeEl = document.getElementById("targetType");
   const valueEl = document.getElementById("targetValue");
+  const value2El = document.getElementById("targetValue2");
+
   if (typeEl) typeEl.value = scenario.goal.type || "same_weight";
-  if (valueEl) valueEl.value =
-    Number.isFinite(scenario.goal.value) && scenario.goal.type !== "same_weight"
-      ? scenario.goal.value
-      : "";
+
+  if (valueEl) {
+    valueEl.value =
+      Number.isFinite(scenario.goal.value) &&
+      scenario.goal.type !== "same_weight"
+        ? scenario.goal.value
+        : "";
+  }
+
+  if (value2El) {
+    value2El.value =
+      Number.isFinite(scenario.goal.value2) &&
+      (scenario.goal.type === "target_weight_fat_pct" ||
+        scenario.goal.type === "target_weight_muscle_pct")
+        ? scenario.goal.value2
+        : "";
+  }
 
   recalc();
 }
