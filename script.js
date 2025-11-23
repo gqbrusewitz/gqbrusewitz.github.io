@@ -604,17 +604,15 @@ function saveWorkoutsToStorage() {
 
 function saveWorkoutFromForm() {
   const nameInput = document.getElementById("workoutName");
-  const weightInput = document.getElementById("workoutWeight");
-  const repsInput = document.getElementById("workoutReps");
+  const exercisesInput = document.getElementById("workoutExercises");
   const helper = document.getElementById("workoutHelper");
 
-  if (!nameInput || !weightInput || !repsInput) return;
+  if (!nameInput || !exercisesInput) return;
 
   const workout = {
     id: Date.now(),
     name: nameInput.value.trim() || "Custom workout",
-    weight: weightInput.value.trim(),
-    reps: repsInput.value.trim(),
+    exercises: parseExerciseLines(exercisesInput.value),
   };
 
   workouts.push(workout);
@@ -622,9 +620,9 @@ function saveWorkoutFromForm() {
   renderWorkoutList();
 
   nameInput.value = "";
-  weightInput.value = "";
-  repsInput.value = "";
-  if (helper) helper.textContent = "Saved! Add another or edit below.";
+  exercisesInput.value = "";
+  if (helper)
+    helper.textContent = "Saved! Add another or edit below with all exercises.";
 }
 
 function renderWorkoutList() {
@@ -656,11 +654,20 @@ function renderWorkoutList() {
 
     const detail = document.createElement("p");
     detail.className = "workout-detail";
-    const parts = [];
-    if (w.weight) parts.push(w.weight);
-    if (w.reps) parts.push(`${w.reps} reps`);
-    detail.textContent = parts.join(" · ") || "No details yet";
+    const exercises = getWorkoutExercises(w);
+    detail.textContent = summarizeExercises(exercises);
     titleWrap.appendChild(detail);
+
+    if (exercises.length) {
+      const exerciseList = document.createElement("ul");
+      exerciseList.className = "workout-exercises";
+      exercises.forEach((ex) => {
+        const li = document.createElement("li");
+        li.textContent = ex;
+        exerciseList.appendChild(li);
+      });
+      titleWrap.appendChild(exerciseList);
+    }
 
     const actions = document.createElement("div");
     actions.className = "workout-actions";
@@ -685,6 +692,30 @@ function renderWorkoutList() {
   });
 }
 
+function getWorkoutExercises(workout) {
+  if (!workout) return [];
+
+  if (Array.isArray(workout.exercises) && workout.exercises.length) {
+    return workout.exercises.filter(Boolean);
+  }
+
+  const fallback = [];
+  const parts = [];
+  if (workout.weight) parts.push(workout.weight);
+  if (workout.reps) parts.push(`${workout.reps} reps`);
+  if (parts.length) {
+    fallback.push(`${workout.name || "Exercise"} — ${parts.join(" · ")}`);
+  }
+
+  return fallback;
+}
+
+function summarizeExercises(exercises) {
+  if (!exercises.length) return "No exercises yet";
+  if (exercises.length === 1) return exercises[0];
+  return `${exercises[0]} + ${exercises.length - 1} more`;
+}
+
 function openWorkoutEditor(container, workoutId) {
   if (container.querySelector(".workout-editor")) return;
 
@@ -703,23 +734,14 @@ function openWorkoutEditor(container, workoutId) {
   nameInput.value = workout.name;
   nameField.append(nameLabel, nameInput);
 
-  const weightField = document.createElement("div");
-  weightField.className = "field";
-  const weightLabel = document.createElement("label");
-  weightLabel.textContent = "Weight / Body weight";
-  const weightInput = document.createElement("input");
-  weightInput.type = "text";
-  weightInput.value = workout.weight || "";
-  weightField.append(weightLabel, weightInput);
-
-  const repsField = document.createElement("div");
-  repsField.className = "field";
-  const repsLabel = document.createElement("label");
-  repsLabel.textContent = "Reps";
-  const repsInput = document.createElement("input");
-  repsInput.type = "text";
-  repsInput.value = workout.reps || "";
-  repsField.append(repsLabel, repsInput);
+  const exercisesField = document.createElement("div");
+  exercisesField.className = "field";
+  const exercisesLabel = document.createElement("label");
+  exercisesLabel.textContent = "Exercises (one per line)";
+  const exercisesInput = document.createElement("textarea");
+  exercisesInput.rows = 4;
+  exercisesInput.value = getWorkoutExercises(workout).join("\n");
+  exercisesField.append(exercisesLabel, exercisesInput);
 
   const actionRow = document.createElement("div");
   actionRow.className = "workout-editor-actions";
@@ -730,8 +752,7 @@ function openWorkoutEditor(container, workoutId) {
   saveBtn.textContent = "Save edits";
   saveBtn.addEventListener("click", () => {
     workout.name = nameInput.value.trim() || "Custom workout";
-    workout.weight = weightInput.value.trim();
-    workout.reps = repsInput.value.trim();
+    workout.exercises = parseExerciseLines(exercisesInput.value);
     saveWorkoutsToStorage();
     renderWorkoutList();
   });
@@ -745,7 +766,7 @@ function openWorkoutEditor(container, workoutId) {
   });
 
   actionRow.append(saveBtn, cancelBtn);
-  editor.append(nameField, weightField, repsField, actionRow);
+  editor.append(nameField, exercisesField, actionRow);
   container.appendChild(editor);
 }
 
@@ -762,8 +783,7 @@ function addWorkoutToWeek(id) {
   const entry = {
     id: Date.now(),
     name: workout.name,
-    weight: workout.weight,
-    reps: workout.reps,
+    exercises: getWorkoutExercises(workout),
   };
 
   weeklyFlow.push(entry);
@@ -821,12 +841,21 @@ function renderWeeklyFlow() {
 
     const detail = document.createElement("p");
     detail.className = "workout-detail";
-    const parts = [];
-    if (entry.weight) parts.push(entry.weight);
-    if (entry.reps) parts.push(`${entry.reps} reps`);
-    detail.textContent = parts.join(" · ") || "No details yet";
+    const exercises = getWorkoutExercises(entry);
+    detail.textContent = summarizeExercises(exercises);
 
     titleWrap.append(nameEl, detail);
+
+    if (exercises.length) {
+      const exerciseList = document.createElement("ul");
+      exerciseList.className = "workout-exercises";
+      exercises.forEach((ex) => {
+        const li = document.createElement("li");
+        li.textContent = ex;
+        exerciseList.appendChild(li);
+      });
+      titleWrap.appendChild(exerciseList);
+    }
 
     const actions = document.createElement("div");
     actions.className = "workout-actions";

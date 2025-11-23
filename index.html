@@ -211,20 +211,22 @@
           </div>
 
           <div class="field">
-            <label for="workoutWeight">Weight / Body weight</label>
-            <input id="workoutWeight" type="text" placeholder="e.g. 135 lbs or Bodyweight" />
-          </div>
-
-          <div class="field">
-            <label for="workoutReps">Reps</label>
-            <input id="workoutReps" type="text" placeholder="e.g. 3×10" />
+            <label for="workoutExercises">Exercises (one per line)</label>
+            <textarea
+              id="workoutExercises"
+              rows="4"
+              placeholder="e.g. Bench press — 4×8 @ 135\nChin-ups — 3×AMRAP\nSplit squats — 3×10"
+            ></textarea>
+            <small class="helper-text">
+              List multiple moves—they’ll stay attached when you add this workout to your week.
+            </small>
           </div>
 
           <button id="saveWorkoutButton" class="button full-width-mobile" type="button">
             Save workout
           </button>
           <p class="helper-text" id="workoutHelper">
-            Save a workout, then add it to your weekly training flow.
+            Save a workout with all its exercises, then add it to your weekly training flow.
           </p>
 
           <ul id="workoutList" class="workout-list"></ul>
