@@ -26,151 +26,237 @@
   </header>
 
   <main class="app-main">
-    <!-- Summary pill -->
-    <div id="summaryPill" class="summary-pill">
-      Enter your current stats and goal to see a quick summary here.
+    <div class="tab-bar" role="tablist" aria-label="Tools">
+      <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="calculatorTab" data-tab="calculator">
+        Calculators
+      </button>
+      <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="workoutTab" data-tab="workout">
+        Workouts
+      </button>
     </div>
 
-    <section class="cards-grid">
+    <div class="tab-panel" id="calculatorTab" role="tabpanel">
+      <!-- Summary pill -->
+      <div id="summaryPill" class="summary-pill">
+        Enter your current stats and goal to see a quick summary here.
+      </div>
 
-      <!-- Current stats -->
-      <section class="card">
-        <h2>Current Stats</h2>
-        <p class="card-subtitle">Enter your latest numbers from your scale.</p>
+      <section class="cards-grid">
 
-        <div class="field">
-          <label for="currentWeight">Total weight (lbs)</label>
-          <input id="currentWeight" type="number" inputmode="decimal" step="0.01" />
-        </div>
+        <!-- Current stats -->
+        <section class="card">
+          <h2>Current Stats</h2>
+          <p class="card-subtitle">Enter your latest numbers from your scale.</p>
 
-        <div class="field">
-          <label for="currentFat">Body fat mass (lbs)</label>
-          <input id="currentFat" type="number" inputmode="decimal" step="0.01" />
-        </div>
-
-        <div class="field">
-          <label for="currentMuscle">Muscle mass (lbs)</label>
-          <input id="currentMuscle" type="number" inputmode="decimal" step="0.01" />
-        </div>
-
-        <div class="summary">
-          <h3>Current Composition</h3>
-          <ul>
-            <li>Body fat: <span id="currentFatPct">0.0</span>%</li>
-            <li>Muscle: <span id="currentMusclePct">0.0</span>%</li>
-            <li>Bone (auto): <span id="currentBonePct">0.0</span>%</li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- What-if goal -->
-      <section class="card">
-        <h2>What-If Goal</h2>
-        <p class="card-subtitle">Choose a goal type and enter values.</p>
-
-        <div class="field">
-          <label for="targetType">Goal type</label>
-          <select id="targetType">
-            <option value="same_weight">Keep same weight & composition</option>
-            <option value="target_weight">Target weight (lbs)</option>
-            <option value="target_fat_mass">Target body fat (lbs)</option>
-            <option value="target_fat_pct">Target body fat (%)</option>
-            <option value="target_muscle_mass">Target muscle (lbs)</option>
-            <option value="target_muscle_pct">Target muscle (%)</option>
-            <option value="target_weight_fat_pct">Target weight + body fat %</option>
-            <option value="target_weight_muscle_pct">Target weight + muscle %</option>
-            <option value="target_weight_fat_muscle_pct">Target weight + fat % + muscle %</option>
-          </select>
-        </div>
-
-        <!-- Row: weight + second value (fat% or muscle%) -->
-        <div class="goal-row">
-          <div class="field goal-col" id="targetValueWrapper">
-            <label id="targetValueLabel" for="targetValue">Goal value</label>
-            <input id="targetValue" type="number" inputmode="decimal" step="0.01" />
+          <div class="field">
+            <label for="currentWeight">Total weight (lbs)</label>
+            <input id="currentWeight" type="number" inputmode="decimal" step="0.01" />
           </div>
 
-          <div class="field goal-col" id="targetValue2Wrapper" style="display:none;">
-            <label id="targetValue2Label" for="targetValue2">Second goal value</label>
-            <input id="targetValue2" type="number" inputmode="decimal" step="0.01" />
+          <div class="field">
+            <label for="currentFat">Body fat mass (lbs)</label>
+            <input id="currentFat" type="number" inputmode="decimal" step="0.01" />
           </div>
-        </div>
 
-        <!-- Second row: third value (muscle %) -->
-        <div class="field" id="targetValue3Wrapper" style="display:none;">
-          <label id="targetValue3Label" for="targetValue3">Third goal value</label>
-          <input id="targetValue3" type="number" inputmode="decimal" step="0.01" />
-        </div>
+          <div class="field">
+            <label for="currentMuscle">Muscle mass (lbs)</label>
+            <input id="currentMuscle" type="number" inputmode="decimal" step="0.01" />
+          </div>
 
-        <small id="targetHelper" class="helper-text">
-          Using your current weight and composition.
-        </small>
+          <div class="summary">
+            <h3>Current Composition</h3>
+            <ul>
+              <li>Body fat: <span id="currentFatPct">0.0</span>%</li>
+              <li>Muscle: <span id="currentMusclePct">0.0</span>%</li>
+              <li>Bone (auto): <span id="currentBonePct">0.0</span>%</li>
+            </ul>
+          </div>
+        </section>
 
-        <button id="copyCurrentToTarget" class="button button-secondary full-width-mobile" type="button">
-          Reset to “same weight”
-        </button>
+        <!-- What-if goal -->
+        <section class="card">
+          <h2>What-If Goal</h2>
+          <p class="card-subtitle">Choose a goal type and enter values.</p>
 
-        <div class="summary" style="margin-top:0.8rem;">
-          <h3>Target Composition</h3>
-          <ul>
-            <li>Body fat: <span id="targetFatPct">0.0</span>%</li>
-            <li>Muscle: <span id="targetMusclePct">0.0</span>%</li>
-            <li>Bone (auto): <span id="targetBonePct">0.0</span>%</li>
+          <div class="field">
+            <label for="targetType">Goal type</label>
+            <select id="targetType">
+              <option value="same_weight">Keep same weight & composition</option>
+              <option value="target_weight">Target weight (lbs)</option>
+              <option value="target_fat_mass">Target body fat (lbs)</option>
+              <option value="target_fat_pct">Target body fat (%)</option>
+              <option value="target_muscle_mass">Target muscle (lbs)</option>
+              <option value="target_muscle_pct">Target muscle (%)</option>
+              <option value="target_weight_fat_pct">Target weight + body fat %</option>
+              <option value="target_weight_muscle_pct">Target weight + muscle %</option>
+              <option value="target_weight_fat_muscle_pct">Target weight + fat % + muscle %</option>
+            </select>
+          </div>
+
+          <!-- Row: weight + second value (fat% or muscle%) -->
+          <div class="goal-row">
+            <div class="field goal-col" id="targetValueWrapper">
+              <label id="targetValueLabel" for="targetValue">Goal value</label>
+              <input id="targetValue" type="number" inputmode="decimal" step="0.01" />
+            </div>
+
+            <div class="field goal-col" id="targetValue2Wrapper" style="display:none;">
+              <label id="targetValue2Label" for="targetValue2">Second goal value</label>
+              <input id="targetValue2" type="number" inputmode="decimal" step="0.01" />
+            </div>
+          </div>
+
+          <!-- Second row: third value (muscle %) -->
+          <div class="field" id="targetValue3Wrapper" style="display:none;">
+            <label id="targetValue3Label" for="targetValue3">Third goal value</label>
+            <input id="targetValue3" type="number" inputmode="decimal" step="0.01" />
+          </div>
+
+          <small id="targetHelper" class="helper-text">
+            Using your current weight and composition.
+          </small>
+
+          <button id="copyCurrentToTarget" class="button button-secondary full-width-mobile" type="button">
+            Reset to “same weight”
+          </button>
+
+          <div class="summary" style="margin-top:0.8rem;">
+            <h3>Target Composition</h3>
+            <ul>
+              <li>Body fat: <span id="targetFatPct">0.0</span>%</li>
+              <li>Muscle: <span id="targetMusclePct">0.0</span>%</li>
+              <li>Bone (auto): <span id="targetBonePct">0.0</span>%</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Differences -->
+        <section class="card">
+          <h2>Changes Needed</h2>
+          <p class="card-subtitle">How different is your what-if from today?</p>
+
+          <div class="result-line">
+            <span class="result-label">Weight difference:</span>
+            <span id="weightDiffText" class="result-value">No change</span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Body fat change:</span>
+            <span id="fatChangeText" class="result-value">No change</span>
+          </div>
+          <div class="result-line">
+            <span class="result-label">Muscle change:</span>
+            <span id="muscleChangeText" class="result-value">No change</span>
+          </div>
+
+          <hr class="divider" />
+
+          <h3>Quick Summary</h3>
+          <p id="quickSummary" class="quick-summary">
+            Enter your stats and select a goal to see differences.
+          </p>
+        </section>
+
+        <!-- Scenarios -->
+        <section class="card">
+          <h2>Saved Scenarios</h2>
+          <p class="card-subtitle">Save what-if states & load them anytime.</p>
+
+          <div class="field inline-field">
+            <label for="scenarioName">Scenario name</label>
+            <input id="scenarioName" type="text" placeholder="e.g. Spring Cut" />
+          </div>
+
+          <button id="saveScenarioButton" class="button full-width-mobile" type="button">
+            Save current state
+          </button>
+
+          <ul id="scenarioList" class="scenario-list"></ul>
+        </section>
+
+      </section>
+
+      <!-- Chart -->
+      <section class="card chart-card">
+        <h2>Body Composition Chart</h2>
+        <p class="card-subtitle">Current vs What-If (Stacked)</p>
+        <canvas id="compositionChart"></canvas>
+      </section>
+    </div>
+
+    <div class="tab-panel" id="workoutTab" role="tabpanel" hidden>
+      <section class="cards-grid">
+        <section class="card">
+          <h2>Weekly Training Flow</h2>
+          <p class="card-subtitle">Keep intensity balanced with recovery.</p>
+          <ul class="week-plan">
+            <li><strong>Mon:</strong> Upper push (bench/overhead) + core</li>
+            <li><strong>Tue:</strong> Lower (squat/hinge) + mobility</li>
+            <li><strong>Wed:</strong> Conditioning (20–30 min zone 2)</li>
+            <li><strong>Thu:</strong> Upper pull (rows/pull-ups) + arms</li>
+            <li><strong>Fri:</strong> Lower power + carries</li>
+            <li><strong>Sat:</strong> Optional finisher or sport</li>
+            <li><strong>Sun:</strong> Full rest, light walk, or stretching</li>
           </ul>
-        </div>
+          <p class="helper-text" style="margin-top:0.4rem;">Swap days as needed—just keep two rest/recovery slots per week.</p>
+        </section>
+
+        <section class="card">
+          <h2>Session Builder</h2>
+          <p class="card-subtitle">Pick one block from each row to craft today’s lift.</p>
+          <div class="session-grid">
+            <div>
+              <h3>Warm-up</h3>
+              <ul class="tag-list">
+                <li class="tag">5 min brisk walk</li>
+                <li class="tag">Hip airplanes</li>
+                <li class="tag">Scap push-ups</li>
+                <li class="tag">Glute bridge x12</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Main lift</h3>
+              <ul class="tag-list">
+                <li class="tag">Squat 4×5</li>
+                <li class="tag">Bench 4×6</li>
+                <li class="tag">Deadlift 3×5</li>
+                <li class="tag">Overhead press 4×6</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Accessories</h3>
+              <ul class="tag-list">
+                <li class="tag">Rows 3×10</li>
+                <li class="tag">Split squats 3×8</li>
+                <li class="tag">RDL 3×8</li>
+                <li class="tag">Face pulls 3×12</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Finishers</h3>
+              <ul class="tag-list">
+                <li class="tag">Farmer carry 4×40 yd</li>
+                <li class="tag">Sled push 6×20 yd</li>
+                <li class="tag">10-min EMOM swing + push-up</li>
+                <li class="tag">Bike sprints 8×15s</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Cardio & Recovery</h2>
+          <p class="card-subtitle">Plug these in around your lifting days.</p>
+          <ul class="tag-columns">
+            <li><strong>Zone 2:</strong> 25–40 min easy bike, jog, or row.</li>
+            <li><strong>Intervals:</strong> 8–12 rounds of 30s on / 90s off.</li>
+            <li><strong>Steps:</strong> 7–10k daily as a steady baseline.</li>
+            <li><strong>Mobility:</strong> 8–10 min hips/shoulders after lifting.</li>
+            <li><strong>Sleep:</strong> 7–9 hrs; short naps if training volume rises.</li>
+            <li><strong>Hydration:</strong> 16–20 oz water with electrolytes pre-lift.</li>
+          </ul>
+        </section>
       </section>
-
-      <!-- Differences -->
-      <section class="card">
-        <h2>Changes Needed</h2>
-        <p class="card-subtitle">How different is your what-if from today?</p>
-
-        <div class="result-line">
-          <span class="result-label">Weight difference:</span>
-          <span id="weightDiffText" class="result-value">No change</span>
-        </div>
-        <div class="result-line">
-          <span class="result-label">Body fat change:</span>
-          <span id="fatChangeText" class="result-value">No change</span>
-        </div>
-        <div class="result-line">
-          <span class="result-label">Muscle change:</span>
-          <span id="muscleChangeText" class="result-value">No change</span>
-        </div>
-
-        <hr class="divider" />
-
-        <h3>Quick Summary</h3>
-        <p id="quickSummary" class="quick-summary">
-          Enter your stats and select a goal to see differences.
-        </p>
-      </section>
-
-      <!-- Scenarios -->
-      <section class="card">
-        <h2>Saved Scenarios</h2>
-        <p class="card-subtitle">Save what-if states & load them anytime.</p>
-
-        <div class="field inline-field">
-          <label for="scenarioName">Scenario name</label>
-          <input id="scenarioName" type="text" placeholder="e.g. Spring Cut" />
-        </div>
-
-        <button id="saveScenarioButton" class="button full-width-mobile" type="button">
-          Save current state
-        </button>
-
-        <ul id="scenarioList" class="scenario-list"></ul>
-      </section>
-
-    </section>
-
-    <!-- Chart -->
-    <section class="card chart-card">
-      <h2>Body Composition Chart</h2>
-      <p class="card-subtitle">Current vs What-If (Stacked)</p>
-      <canvas id="compositionChart"></canvas>
-    </section>
+    </div>
   </main>
 
   <footer class="app-footer">

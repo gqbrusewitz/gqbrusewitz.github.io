@@ -4,6 +4,7 @@ let compositionChart = null;
 let scenarios = [];
 const STORAGE_KEY = "weightWhatIfScenarios";
 const THEME_KEY = "ww_theme";
+const TAB_KEY = "ww_active_tab";
 
 /* ---------- Theme handling ---------- */
 
@@ -46,10 +47,58 @@ function initTheme() {
   }
 }
 
+/* ---------- Tabs ---------- */
+
+function initTabs() {
+  const buttons = Array.from(document.querySelectorAll(".tab-button"));
+  const panels = Array.from(document.querySelectorAll(".tab-panel"));
+  if (!buttons.length || !panels.length) return;
+
+  let stored = null;
+  try {
+    stored = localStorage.getItem(TAB_KEY);
+  } catch {
+    stored = null;
+  }
+
+  const initial = stored === "workout" ? "workout" : "calculator";
+  setActiveTab(initial, buttons, panels);
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      setActiveTab(target, buttons, panels);
+    });
+  });
+}
+
+function setActiveTab(tab, buttons, panels) {
+  const targetId = `${tab}Tab`;
+  buttons.forEach((btn) => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    btn.setAttribute("tabindex", isActive ? "0" : "-1");
+  });
+
+  panels.forEach((panel) => {
+    const match = panel.id === targetId;
+    panel.hidden = !match;
+    panel.setAttribute("aria-hidden", match ? "false" : "true");
+  });
+
+  try {
+    localStorage.setItem(TAB_KEY, tab);
+  } catch {
+    // ignore
+  }
+}
+
 /* ---------- Startup ---------- */
 
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
+  initTabs();
 
   // Current inputs
   ["currentWeight", "currentFat", "currentMuscle"].forEach((id) => {
