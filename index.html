@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weight What-If Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js for the composition chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <h1>Weight What-If</h1>
+      <p>Play with “what-if” scenarios for your weight, fat, and muscle.</p>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="cards-grid">
+      <!-- Current stats card -->
+      <section class="card">
+        <h2>Current Stats</h2>
+        <p class="card-subtitle">Enter your latest numbers from your scale.</p>
+
+        <div class="field">
+          <label for="currentWeight">Total weight (lbs)</label>
+          <input id="currentWeight" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="currentFat">Body fat mass (lbs)</label>
+          <input id="currentFat" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="currentMuscle">Muscle mass (lbs)</label>
+          <input id="currentMuscle" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="currentBone">Bone mass (lbs)</label>
+          <input id="currentBone" type="number" step="0.01" />
+        </div>
+
+        <div class="summary">
+          <h3>Composition</h3>
+          <ul>
+            <li>Body fat: <span id="currentFatPct">–</span>%</li>
+            <li>Muscle: <span id="currentMusclePct">–</span>%</li>
+            <li>Bone: <span id="currentBonePct">–</span>%</li>
+            <li>Other: <span id="currentOtherPct">–</span>%</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- What-if stats card -->
+      <section class="card">
+        <h2>What-If Scenario</h2>
+        <p class="card-subtitle">Set a target and see what would change.</p>
+
+        <div class="field">
+          <label for="targetWeight">Target total weight (lbs)</label>
+          <input id="targetWeight" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="targetFat">Target body fat mass (lbs)</label>
+          <input id="targetFat" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="targetMuscle">Target muscle mass (lbs)</label>
+          <input id="targetMuscle" type="number" step="0.01" />
+        </div>
+
+        <div class="field">
+          <label for="targetBone">Target bone mass (lbs)</label>
+          <input id="targetBone" type="number" step="0.01" />
+        </div>
+
+        <button id="copyCurrentToTarget" class="button button-secondary">
+          Copy current → what-if
+        </button>
+
+        <div class="summary">
+          <h3>Target Composition</h3>
+          <ul>
+            <li>Body fat: <span id="targetFatPct">–</span>%</li>
+            <li>Muscle: <span id="targetMusclePct">–</span>%</li>
+            <li>Bone: <span id="targetBonePct">–</span>%</li>
+            <li>Other: <span id="targetOtherPct">–</span>%</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Results card -->
+      <section class="card">
+        <h2>Changes Needed</h2>
+        <p class="card-subtitle">How different is your what-if from today?</p>
+
+        <div class="result-line">
+          <span class="result-label">Weight difference:</span>
+          <span id="weightDiffText" class="result-value">–</span>
+        </div>
+
+        <div class="result-line">
+          <span class="result-label">Body fat change:</span>
+          <span id="fatChangeText" class="result-value">–</span>
+        </div>
+
+        <div class="result-line">
+          <span class="result-label">Muscle change:</span>
+          <span id="muscleChangeText" class="result-value">–</span>
+        </div>
+
+        <hr class="divider" />
+
+        <h3>Quick Summary</h3>
+        <p id="quickSummary" class="quick-summary">
+          Enter your current and what-if numbers to see the breakdown.
+        </p>
+      </section>
+
+      <!-- Saved scenarios card -->
+      <section class="card">
+        <h2>Saved Scenarios</h2>
+        <p class="card-subtitle">Save different what-ifs to revisit later.</p>
+
+        <div class="field inline-field">
+          <label for="scenarioName">Scenario name</label>
+          <input id="scenarioName" type="text" placeholder="e.g. Spring Cut, Lean Bulk" />
+        </div>
+
+        <button id="saveScenarioButton" class="button">
+          Save current what-if
+        </button>
+
+        <ul id="scenarioList" class="scenario-list">
+          <!-- Scenarios will be injected here -->
+        </ul>
+      </section>
+    </section>
+
+    <!-- Chart card spans full width on small screens -->
+    <section class="card chart-card">
+      <h2>Body Composition Chart</h2>
+      <p class="card-subtitle">Compare current vs what-if as stacked bars.</p>
+      <canvas id="compositionChart"></canvas>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      Built for “what-if” experiments – host on GitHub Pages and tweak however you like.
+    </p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
