@@ -1,958 +1,880 @@
-/* script.js — Weight What-If Calculator with Theme + Advanced Goals */
+const STORAGE_KEYS = {
+  workouts: "lift_workouts_v1",
+  exercises: "lift_exercises_v1",
+  settings: "lift_settings_v1",
+  scenarios: "lift_scenarios_v1",
+  tab: "lift_tab_v1",
+};
 
-let compositionChart = null;
-let scenarios = [];
+const DEFAULT_EXERCISES = [
+  { name: "Bench Press", category: "Upper" },
+  { name: "Incline Dumbbell Bench", category: "Upper" },
+  { name: "Overhead Press", category: "Upper" },
+  { name: "Pull-Up", category: "Back" },
+  { name: "Barbell Row", category: "Back" },
+  { name: "Deadlift", category: "Posterior" },
+  { name: "Squat", category: "Lower" },
+  { name: "Front Squat", category: "Lower" },
+  { name: "Romanian Deadlift", category: "Posterior" },
+  { name: "Hip Thrust", category: "Glutes" },
+  { name: "Biceps Curl", category: "Arms" },
+  { name: "Triceps Pushdown", category: "Arms" },
+];
+
 let workouts = [];
-const STORAGE_KEY = "weightWhatIfScenarios";
-const WORKOUT_STORAGE_KEY = "weightWhatIfWorkouts";
-const THEME_KEY = "ww_theme";
-const TAB_KEY = "ww_active_tab";
+let exerciseLibrary = [];
+let scenarios = [];
+let compositionChart;
+let volumeChart;
+let frequencyChart;
+let deferredPrompt = null;
 
-/* ---------- Theme handling ---------- */
+const qs = (selector, parent = document) => parent.querySelector(selector);
+const qsa = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  const btn = document.getElementById("themeToggle");
-  if (btn) {
-    btn.textContent = theme === "dark" ? "☀️ Light" : "🌙 Dark";
-  }
-}
-
-function initTheme() {
-  let stored = null;
+function loadSettings() {
   try {
-    stored = localStorage.getItem(THEME_KEY);
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
+    return stored || { unit: "lbs", theme: "system" };
   } catch {
-    stored = null;
-  }
-
-  const prefersDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-  const initial = stored || (prefersDark ? "dark" : "light");
-  applyTheme(initial);
-
-  const btn = document.getElementById("themeToggle");
-  if (btn) {
-    btn.addEventListener("click", () => {
-      const current =
-        document.documentElement.getAttribute("data-theme") || "dark";
-      const next = current === "dark" ? "light" : "dark";
-      applyTheme(next);
-      try {
-        localStorage.setItem(THEME_KEY, next);
-      } catch {
-        // ignore
-      }
-    });
+    return { unit: "lbs", theme: "system" };
   }
 }
 
-/* ---------- Tabs ---------- */
-
-function initTabs() {
-  const buttons = Array.from(document.querySelectorAll(".tab-button"));
-  const panels = Array.from(document.querySelectorAll(".tab-panel"));
-  if (!buttons.length || !panels.length) return;
-
-  let stored = null;
+function saveSettings(settings) {
   try {
-    stored = localStorage.getItem(TAB_KEY);
-  } catch {
-    stored = null;
-  }
-
-  const initial = stored === "workout" ? "workout" : "calculator";
-  setActiveTab(initial, buttons, panels);
-
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.tab;
-      setActiveTab(target, buttons, panels);
-    });
-  });
-}
-
-function setActiveTab(tab, buttons, panels) {
-  const targetId = `${tab}Tab`;
-  buttons.forEach((btn) => {
-    const isActive = btn.dataset.tab === tab;
-    btn.classList.toggle("active", isActive);
-    btn.setAttribute("aria-selected", isActive ? "true" : "false");
-    btn.setAttribute("tabindex", isActive ? "0" : "-1");
-  });
-
-  panels.forEach((panel) => {
-    const match = panel.id === targetId;
-    panel.hidden = !match;
-    panel.setAttribute("aria-hidden", match ? "false" : "true");
-  });
-
-  try {
-    localStorage.setItem(TAB_KEY, tab);
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
   } catch {
     // ignore
   }
 }
 
-/* ---------- Startup ---------- */
+function applyTheme(themePref) {
+  const root = document.documentElement;
+  let theme = themePref;
+  if (themePref === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    theme = prefersDark ? "dark" : "light";
+  }
+  root.setAttribute("data-theme", theme);
+  const toggle = qs("#themeToggle");
+  if (toggle) {
+    const label = theme === "dark" ? "☀️ Light" : "🌙 Dark";
+    toggle.textContent = label;
+  }
+  const select = qs("#themeSelect");
+  if (select && select.value !== themePref) select.value = themePref;
+}
 
-  document.addEventListener("DOMContentLoaded", () => {
-    initTheme();
-    initTabs();
-
-  // Current inputs
-  ["currentWeight", "currentFat", "currentMuscle"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", recalc);
+function initTheme() {
+  const settings = loadSettings();
+  applyTheme(settings.theme);
+  const toggle = qs("#themeToggle");
+  toggle?.addEventListener("click", () => {
+    const currentPref = loadSettings().theme;
+    const next = currentPref === "dark" ? "light" : currentPref === "light" ? "contrast" : "dark";
+    const updated = { ...loadSettings(), theme: next };
+    saveSettings(updated);
+    applyTheme(next);
   });
+  const select = qs("#themeSelect");
+  select?.addEventListener("change", (e) => {
+    const updated = { ...loadSettings(), theme: e.target.value };
+    saveSettings(updated);
+    applyTheme(e.target.value);
+  });
+}
 
-  // Goal type + values
-  document.getElementById("targetType").addEventListener("change", recalc);
-  document.getElementById("targetValue").addEventListener("input", recalc);
-  document.getElementById("targetValue2").addEventListener("input", recalc);
-  document.getElementById("targetValue3").addEventListener("input", recalc);
+function initTabs() {
+  const buttons = qsa(".tab-button");
+  const panels = qsa(".tab-panel");
+  const stored = localStorage.getItem(STORAGE_KEYS.tab) || "workouts";
+  const allowed = ["workouts", "analytics", "calculators", "settings"];
+  const initial = allowed.includes(stored) ? stored : "workouts";
+  setActiveTab(initial, buttons, panels);
+  buttons.forEach((btn) =>
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab, buttons, panels))
+  );
+}
 
-  // Reset goal
-  document
-    .getElementById("copyCurrentToTarget")
-    .addEventListener("click", () => {
-      document.getElementById("targetType").value = "same_weight";
-      document.getElementById("targetValue").value = "";
-      document.getElementById("targetValue2").value = "";
-      document.getElementById("targetValue3").value = "";
-      recalc();
+function setActiveTab(tab, buttons, panels) {
+  buttons.forEach((btn) => {
+    const active = btn.dataset.tab === tab;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active);
+  });
+  panels.forEach((panel) => {
+    const active = panel.id === `${tab}Tab`;
+    panel.hidden = !active;
+  });
+  localStorage.setItem(STORAGE_KEYS.tab, tab);
+}
+
+function loadFromStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveToStorage(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+}
+
+function initData() {
+  workouts = loadFromStorage(STORAGE_KEYS.workouts, []);
+  exerciseLibrary = loadFromStorage(STORAGE_KEYS.exercises, DEFAULT_EXERCISES);
+  scenarios = loadFromStorage(STORAGE_KEYS.scenarios, []);
+}
+
+function renderExerciseLibrary() {
+  const container = qs("#exerciseLibrary");
+  container.innerHTML = "";
+  exerciseLibrary.forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "exercise-chip";
+    div.innerHTML = `<div><strong>${item.name}</strong><br/><span>${item.category}</span></div>`;
+    const actions = document.createElement("div");
+    const edit = document.createElement("button");
+    edit.textContent = "Edit";
+    edit.className = "button-secondary";
+    edit.addEventListener("click", () => {
+      const name = prompt("Edit exercise name", item.name) || item.name;
+      const category = prompt("Edit category", item.category) || item.category;
+      exerciseLibrary[idx] = { name, category };
+      saveToStorage(STORAGE_KEYS.exercises, exerciseLibrary);
+      renderExerciseLibrary();
+      refreshExerciseDatalists();
     });
+    const del = document.createElement("button");
+    del.textContent = "Delete";
+    del.className = "button-secondary";
+    del.addEventListener("click", () => {
+      exerciseLibrary.splice(idx, 1);
+      saveToStorage(STORAGE_KEYS.exercises, exerciseLibrary);
+      renderExerciseLibrary();
+      refreshExerciseDatalists();
+    });
+    actions.append(edit, del);
+    actions.style.display = "flex";
+    actions.style.gap = "0.35rem";
+    div.append(actions);
+    container.append(div);
+  });
+}
 
-  // Scenarios
-  document
-    .getElementById("saveScenarioButton")
-    .addEventListener("click", saveCurrentScenario);
+function refreshExerciseDatalists() {
+  const names = exerciseLibrary.map((e) => e.name);
+  qsa(".exercise-name").forEach((input) => {
+    input.setAttribute("list", "exerciseList");
+  });
+  let list = qs("#exerciseList");
+  if (!list) {
+    list = document.createElement("datalist");
+    list.id = "exerciseList";
+    document.body.appendChild(list);
+  }
+  list.innerHTML = names.map((name) => `<option value="${name}"></option>`).join("");
+}
 
-  loadScenariosFromStorage();
-  initWorkoutBuilder();
-  recalc();
-});
+function addExerciseCard(prefillName = "") {
+  const area = qs("#exerciseArea");
+  const card = document.createElement("div");
+  card.className = "exercise-card";
+  card.innerHTML = `
+    <div class="exercise-header">
+      <label class="field" style="flex:1;">
+        <span>Exercise</span>
+        <input type="text" class="exercise-name" value="${prefillName}" placeholder="Select or type" />
+      </label>
+      <button class="button-secondary remove-exercise" type="button">Remove</button>
+    </div>
+    <div class="exercise-sets"></div>
+    <div class="helper-row">
+      <button class="button-secondary add-set" type="button">+ Add set</button>
+      <div class="pill exercise-totals">0 sets · 0 reps · 0 volume</div>
+    </div>
+  `;
+  area.append(card);
+  card.querySelector(".remove-exercise").addEventListener("click", () => {
+    card.remove();
+    updateSessionTotals();
+  });
+  card.querySelector(".add-set").addEventListener("click", () => addSetRow(card));
+  refreshExerciseDatalists();
+  addSetRow(card);
+}
 
-/* ---------- Utilities ---------- */
+function addSetRow(card, cloneData = null) {
+  const sets = card.querySelector(".exercise-sets");
+  const row = document.createElement("div");
+  row.className = "set-row";
+  row.innerHTML = `
+    <label class="field"><span>Reps</span><input type="number" inputmode="numeric" class="set-reps" value="${cloneData?.reps || ""}" /></label>
+    <label class="field"><span>Weight</span><input type="number" inputmode="decimal" class="set-weight" value="${cloneData?.weight || ""}" /></label>
+    <label class="field"><span>Notes</span><input type="text" class="set-note" value="${cloneData?.note || ""}" placeholder="tempo, paused..." /></label>
+    <div class="helper-row">
+      <button class="button-secondary duplicate-set" type="button">Duplicate</button>
+      <button class="button-secondary remove-set" type="button">Delete</button>
+    </div>
+  `;
+  sets.append(row);
+  row.querySelectorAll("input").forEach((input) =>
+    input.addEventListener("input", updateSessionTotals)
+  );
+  row.querySelector(".remove-set").addEventListener("click", () => {
+    row.remove();
+    updateSessionTotals();
+  });
+  row.querySelector(".duplicate-set").addEventListener("click", () => {
+    const data = {
+      reps: row.querySelector(".set-reps").value,
+      weight: row.querySelector(".set-weight").value,
+      note: row.querySelector(".set-note").value,
+    };
+    addSetRow(card, data);
+  });
+  updateSessionTotals();
+}
 
+function updateSessionTotals() {
+  let setsCount = 0;
+  let repsTotal = 0;
+  let volumeTotal = 0;
+  qsa(".exercise-card").forEach((card) => {
+    let cardSets = 0;
+    let cardReps = 0;
+    let cardVolume = 0;
+    card.querySelectorAll(".set-row").forEach((row) => {
+      const reps = Number(row.querySelector(".set-reps").value) || 0;
+      const weight = Number(row.querySelector(".set-weight").value) || 0;
+      if (reps || weight) {
+        cardSets += 1;
+        cardReps += reps;
+        cardVolume += reps * weight;
+      }
+    });
+    setsCount += cardSets;
+    repsTotal += cardReps;
+    volumeTotal += cardVolume;
+    const totals = card.querySelector(".exercise-totals");
+    totals.textContent = `${cardSets} sets · ${cardReps} reps · ${cardVolume.toFixed(1)} volume`;
+  });
+  qs("#sessionTotals").textContent = `${setsCount} sets · ${repsTotal} reps · ${volumeTotal.toFixed(1)} volume`;
+}
+
+function gatherWorkout() {
+  const title = qs("#workoutTitle").value.trim() || "Untitled";
+  const date = qs("#workoutDate").value || new Date().toISOString().slice(0, 10);
+  const notes = qs("#workoutNotes").value.trim();
+  const exercises = qsa(".exercise-card").map((card) => {
+    const name = card.querySelector(".exercise-name").value.trim();
+    const sets = card.querySelectorAll(".set-row");
+    const setData = [];
+    sets.forEach((row) => {
+      const reps = Number(row.querySelector(".set-reps").value);
+      const weight = Number(row.querySelector(".set-weight").value);
+      const note = row.querySelector(".set-note").value.trim();
+      if (!name || (!reps && !weight)) return;
+      setData.push({ reps, weight, note, volume: reps * weight });
+    });
+    if (!name || !setData.length) return null;
+    return { name, sets: setData };
+  }).filter(Boolean);
+  const totals = exercises.reduce(
+    (acc, ex) => {
+      ex.sets.forEach((s) => {
+        acc.sets += 1;
+        acc.reps += s.reps;
+        acc.volume += s.volume;
+      });
+      return acc;
+    },
+    { sets: 0, reps: 0, volume: 0 }
+  );
+  return { id: crypto.randomUUID(), title, date, notes, exercises, totals };
+}
+
+function saveWorkout() {
+  const data = gatherWorkout();
+  if (!data.exercises.length) {
+    alert("Add at least one exercise with sets");
+    return;
+  }
+  workouts.unshift(data);
+  saveToStorage(STORAGE_KEYS.workouts, workouts);
+  renderHistory();
+  updateAnalytics();
+  resetWorkoutForm();
+}
+
+function resetWorkoutForm() {
+  qs("#workoutTitle").value = "";
+  qs("#workoutNotes").value = "";
+  qs("#workoutDate").value = new Date().toISOString().slice(0, 10);
+  qs("#exerciseArea").innerHTML = "";
+  addExerciseCard();
+  updateSessionTotals();
+}
+
+function renderHistory() {
+  const list = qs("#workoutHistory");
+  const search = qs("#historySearch").value.toLowerCase();
+  const exerciseFilter = qs("#historyExerciseFilter").value.toLowerCase();
+  const minVolume = Number(qs("#historyVolumeFilter").value) || 0;
+  const minReps = Number(qs("#historyRepsFilter").value) || 0;
+  list.innerHTML = "";
+  const filtered = workouts.filter((w) => {
+    const matchesSearch =
+      w.title.toLowerCase().includes(search) ||
+      w.exercises.some((ex) => ex.name.toLowerCase().includes(search));
+    const matchesExercise = exerciseFilter
+      ? w.exercises.some((ex) => ex.name.toLowerCase().includes(exerciseFilter))
+      : true;
+    const matchesVolume = w.totals.volume >= minVolume;
+    const matchesReps = w.totals.reps >= minReps;
+    return matchesSearch && matchesExercise && matchesVolume && matchesReps;
+  });
+  if (!filtered.length) {
+    const empty = document.createElement("li");
+    empty.textContent = "No workouts match these filters yet.";
+    list.append(empty);
+    return;
+  }
+  filtered.forEach((w) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="helper-row" style="justify-content: space-between;">
+        <div>
+          <strong>${w.title}</strong>
+          <p class="workout-meta">${w.date} · ${w.totals.sets} sets · ${w.totals.reps} reps · ${w.totals.volume.toFixed(1)} volume</p>
+        </div>
+        <button class="button-secondary" type="button">Load</button>
+      </div>
+      <p>${w.notes || "No notes"}</p>
+      <ul class="feature-list">${w.exercises
+        .map(
+          (ex) => `<li><strong>${ex.name}</strong> — ${ex.sets
+            .map((s) => `${s.reps} reps @ ${s.weight}${loadSettings().unit}${s.note ? ` (${s.note})` : ""}`)
+            .join("; ")}</li>`
+        )
+        .join("")}</ul>
+    `;
+    li.querySelector("button").addEventListener("click", () => loadWorkoutIntoForm(w));
+    list.append(li);
+  });
+}
+
+function loadWorkoutIntoForm(workout) {
+  qs("#workoutTitle").value = workout.title;
+  qs("#workoutDate").value = workout.date;
+  qs("#workoutNotes").value = workout.notes;
+  qs("#exerciseArea").innerHTML = "";
+  workout.exercises.forEach((ex) => {
+    addExerciseCard(ex.name);
+    const card = qsa(".exercise-card").slice(-1)[0];
+    card.querySelector(".exercise-sets").innerHTML = "";
+    ex.sets.forEach((s) => addSetRow(card, s));
+  });
+  updateSessionTotals();
+}
+
+function addExerciseToLibrary() {
+  const name = qs("#newExerciseName").value.trim();
+  const category = qs("#newExerciseCategory").value.trim() || "General";
+  if (!name) return;
+  exerciseLibrary.push({ name, category });
+  saveToStorage(STORAGE_KEYS.exercises, exerciseLibrary);
+  qs("#newExerciseName").value = "";
+  qs("#newExerciseCategory").value = "";
+  renderExerciseLibrary();
+  refreshExerciseDatalists();
+}
+
+function updateAnalytics() {
+  renderHistory();
+  renderPRs();
+  buildCharts();
+}
+
+function buildCharts() {
+  const weekly = aggregateWeekly();
+  const ctxVolume = qs("#volumeChart");
+  const ctxFreq = qs("#frequencyChart");
+  const labels = weekly.map((w) => w.label);
+  const volumes = weekly.map((w) => w.volume);
+  const sessions = weekly.map((w) => w.count);
+  if (volumeChart) volumeChart.destroy();
+  if (frequencyChart) frequencyChart.destroy();
+  volumeChart = new Chart(ctxVolume, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Total volume", data: volumes, backgroundColor: "#5dd0ff" }] },
+    options: { responsive: true, plugins: { legend: { display: false } } },
+  });
+  frequencyChart = new Chart(ctxFreq, {
+    type: "line",
+    data: { labels, datasets: [{ label: "Sessions", data: sessions, borderColor: "#7cf17d", tension: 0.3 }] },
+    options: { responsive: true, plugins: { legend: { display: false } } },
+  });
+}
+
+function aggregateWeekly() {
+  const map = new Map();
+  workouts.forEach((w) => {
+    const weekKey = getWeekKey(w.date);
+    const current = map.get(weekKey) || { label: weekKey, volume: 0, count: 0 };
+    current.volume += w.totals.volume;
+    current.count += 1;
+    map.set(weekKey, current);
+  });
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function getWeekKey(dateStr) {
+  const date = new Date(dateStr);
+  const onejan = new Date(date.getFullYear(), 0, 1);
+  const week = Math.ceil(((date - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+  return `${date.getFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function renderPRs() {
+  const prMap = new Map();
+  workouts.forEach((w) => {
+    w.exercises.forEach((ex) => {
+      ex.sets.forEach((s) => {
+        const existing = prMap.get(ex.name);
+        if (!existing || s.weight > existing.weight) {
+          prMap.set(ex.name, { ...s, date: w.date });
+        }
+      });
+    });
+  });
+  const list = qs("#prList");
+  list.innerHTML = "";
+  if (!prMap.size) {
+    const li = document.createElement("li");
+    li.textContent = "Log workouts to see PRs.";
+    list.append(li);
+    return;
+  }
+  prMap.forEach((val, name) => {
+    const li = document.createElement("li");
+    li.className = "pr-card";
+    li.innerHTML = `<strong>${name}</strong><p class="workout-meta">${val.weight}${loadSettings().unit} x ${val.reps} on ${val.date}${val.note ? ` — ${val.note}` : ""}</p>`;
+    list.append(li);
+  });
+}
+
+/* Calculator logic reused from previous app */
 function getNumber(id) {
-  const val = parseFloat(document.getElementById(id).value);
+  const val = parseFloat(qs(`#${id}`).value);
   return Number.isFinite(val) ? val : 0;
 }
 
 function setText(id, text) {
-  document.getElementById(id).textContent = text;
-}
-
-function parseExerciseLines(raw) {
-  return raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function formatExerciseLine({ name, weight, reps, sets }) {
-  const parts = [];
-  if (sets) parts.push(`${sets} set${sets === "1" ? "" : "s"}`);
-  if (reps) parts.push(`${reps} reps`);
-  if (weight) parts.push(`@ ${weight}`);
-  return parts.length ? `${name} — ${parts.join(" · ")}` : name;
-}
-
-function renderExerciseDraftList(lines, listEl) {
-  if (!listEl) return;
-  listEl.innerHTML = "";
-
-  if (!lines.length) {
-    const empty = document.createElement("li");
-    empty.className = "empty-exercise";
-    empty.textContent = "No exercises yet—add one above.";
-    listEl.appendChild(empty);
-    return;
-  }
-
-  lines.forEach((line, idx) => {
-    const li = document.createElement("li");
-    li.textContent = `${idx + 1}. ${line}`;
-    listEl.appendChild(li);
-  });
-}
-
-/* ---------- Goal handling ---------- */
-
-function getGoal() {
-  const type = document.getElementById("targetType").value;
-  const v1 = parseFloat(document.getElementById("targetValue").value) || 0;
-  const v2 = parseFloat(document.getElementById("targetValue2").value) || 0;
-  const v3 = parseFloat(document.getElementById("targetValue3").value) || 0;
-
-  updateGoalHelper(type);
-  updateGoalValueEnabled(type);
-
-  return { type, value: v1, value2: v2, value3: v3 };
+  qs(`#${id}`).textContent = text;
 }
 
 function updateGoalHelper(type) {
-  const helper = document.getElementById("targetHelper");
-  const label1 = document.getElementById("targetValueLabel");
-  const label2 = document.getElementById("targetValue2Label");
-  const label3 = document.getElementById("targetValue3Label");
-
-  let text = "";
-  let l1 = "Goal value";
-  let l2 = "Second goal value";
-  let l3 = "Third goal value";
-
+  const helper = qs("#targetHelper");
+  const label1 = qs("#targetValueLabel");
+  const label2 = qs("#targetValue2Label");
+  const label3 = qs("#targetValue3Label");
+  const w2 = qs("#targetValue2Wrapper");
+  const w3 = qs("#targetValue3Wrapper");
+  w2.hidden = true;
+  w3.hidden = true;
   switch (type) {
-    case "same_weight":
-      text = "Using your current composition as the target.";
-      break;
     case "target_weight":
-      text = "Set a new total weight. Fat & muscle scale proportionally.";
-      l1 = "Target weight (lbs)";
+      helper.textContent = "Enter a goal weight.";
+      label1.textContent = "Goal weight (lbs)";
       break;
     case "target_fat_mass":
-      text = "Set a fat mass. Muscle stays the same.";
-      l1 = "Target fat mass (lbs)";
+      helper.textContent = "Enter a target fat mass.";
+      label1.textContent = "Body fat (lbs)";
       break;
     case "target_fat_pct":
-      text = "Set a body fat percentage. Muscle stays the same.";
-      l1 = "Target body fat (%)";
+      helper.textContent = "Enter a target fat percentage.";
+      label1.textContent = "Body fat (%)";
       break;
     case "target_muscle_mass":
-      text = "Set a muscle mass. Fat stays the same.";
-      l1 = "Target muscle mass (lbs)";
+      helper.textContent = "Enter a target muscle mass.";
+      label1.textContent = "Muscle (lbs)";
       break;
     case "target_muscle_pct":
-      text = "Set a muscle percentage. Fat stays the same.";
-      l1 = "Target muscle (%)";
+      helper.textContent = "Enter a target muscle percentage.";
+      label1.textContent = "Muscle (%)";
       break;
     case "target_weight_fat_pct":
-      text = "Enter target weight + body fat percent.";
-      l1 = "Target weight (lbs)";
-      l2 = "Target body fat (%)";
+      helper.textContent = "Set weight and body fat %";
+      label1.textContent = "Goal weight (lbs)";
+      label2.textContent = "Body fat (%)";
+      w2.hidden = false;
       break;
     case "target_weight_muscle_pct":
-      text = "Enter target weight + muscle percent.";
-      l1 = "Target weight (lbs)";
-      l2 = "Target muscle (%)";
+      helper.textContent = "Set weight and muscle %";
+      label1.textContent = "Goal weight (lbs)";
+      label2.textContent = "Muscle (%)";
+      w2.hidden = false;
       break;
     case "target_weight_fat_muscle_pct":
-      text = "Enter target weight, fat %, and muscle %.";
-      l1 = "Target weight (lbs)";
-      l2 = "Target body fat (%)";
-      l3 = "Target muscle (%)";
+      helper.textContent = "Set weight, fat %, and muscle %";
+      label1.textContent = "Goal weight (lbs)";
+      label2.textContent = "Body fat (%)";
+      label3.textContent = "Muscle (%)";
+      w2.hidden = false;
+      w3.hidden = false;
       break;
-  }
-
-  helper.textContent = text;
-  label1.textContent = l1;
-  label2.textContent = l2;
-  label3.textContent = l3;
-}
-
-function updateGoalValueEnabled(type) {
-  const v1 = document.getElementById("targetValue");
-  const v2 = document.getElementById("targetValue2");
-  const v3 = document.getElementById("targetValue3");
-  const w2 = document.getElementById("targetValue2Wrapper");
-  const w3 = document.getElementById("targetValue3Wrapper");
-
-  // Default
-  v1.disabled = false;
-  v2.disabled = true;
-  v3.disabled = true;
-  w2.style.display = "none";
-  w3.style.display = "none";
-
-  if (type === "same_weight") {
-    v1.disabled = true;
-    v1.value = "";
-    v2.value = "";
-    v3.value = "";
-  }
-
-  if (type === "target_weight_fat_pct" || type === "target_weight_muscle_pct") {
-    v2.disabled = false;
-    w2.style.display = "";
-  }
-
-  if (type === "target_weight_fat_muscle_pct") {
-    v2.disabled = false;
-    v3.disabled = false;
-    w2.style.display = "";
-    w3.style.display = "";
+    default:
+      helper.textContent = "Using your current weight and composition.";
+      label1.textContent = "Goal value";
   }
 }
 
-/* ---------- Composition ---------- */
-
-function computeBone(weight, fat, muscle) {
-  const bone = weight - (fat + muscle);
-  return bone > 0 ? bone : 0;
+function getGoal() {
+  const type = qs("#targetType").value;
+  const v1 = parseFloat(qs("#targetValue").value) || 0;
+  const v2 = parseFloat(qs("#targetValue2").value) || 0;
+  const v3 = parseFloat(qs("#targetValue3").value) || 0;
+  updateGoalHelper(type);
+  return { type, value: v1, value2: v2, value3: v3 };
 }
-
-function makeComposition(weight, fat, muscle, bone) {
-  const w = Math.max(weight, 0);
-  const f = Math.max(fat, 0);
-  const m = Math.max(muscle, 0);
-  const b = Math.max(bone, 0);
-  const toPct = (x) => (w > 0 ? (x / w) * 100 : 0);
-
-  return {
-    weight: w,
-    fatMass: f,
-    muscleMass: m,
-    boneMass: b,
-    fatPct: toPct(f),
-    musclePct: toPct(m),
-    bonePct: toPct(b),
-  };
-}
-
-/* ---------- Target calculation ---------- */
-
-function computeTargetFromGoal(curr, goal) {
-  const { weight: cw, fat: cf, muscle: cm } = curr;
-  const currentBone = computeBone(cw, cf, cm);
-
-  let tw = cw;
-  let tf = cf;
-  let tm = cm;
-
-  const v = goal.value;
-  const v2 = goal.value2;
-  const v3 = goal.value3;
-
-  switch (goal.type) {
-    case "target_weight": {
-      tw = Math.max(v, 0);
-      if (cw > 0) {
-        const fatRatio = cf / cw;
-        const muscleRatio = cm / cw;
-        tf = tw * fatRatio;
-        tm = tw * muscleRatio;
-      }
-      break;
-    }
-
-    case "target_fat_mass": {
-      tf = Math.max(v, 0);
-      tm = cm;
-      tw = tf + tm + currentBone;
-      break;
-    }
-
-    case "target_fat_pct": {
-      const p = v / 100;
-      if (p > 0 && p < 1) {
-        tw = (cm + currentBone) / (1 - p);
-        tf = tw * p;
-        tm = cm;
-      }
-      break;
-    }
-
-    case "target_muscle_mass": {
-      tm = Math.max(v, 0);
-      tf = cf;
-      tw = tf + tm + currentBone;
-      break;
-    }
-
-    case "target_muscle_pct": {
-      const p = v / 100;
-      if (p > 0 && p < 1) {
-        tw = (cf + currentBone) / (1 - p);
-        tm = tw * p;
-        tf = cf;
-      }
-      break;
-    }
-
-    case "target_weight_fat_pct": {
-      tw = Math.max(v, 0);
-      const p = v2 / 100;
-      tf = tw * p;
-      tm = tw - tf - currentBone;
-      if (tm < 0) tm = 0;
-      break;
-    }
-
-    case "target_weight_muscle_pct": {
-      tw = Math.max(v, 0);
-      const p = v2 / 100;
-      tm = tw * p;
-      tf = tw - tm - currentBone;
-      if (tf < 0) tf = 0;
-      break;
-    }
-
-    case "target_weight_fat_muscle_pct": {
-      tw = Math.max(v, 0);
-      let pF = Math.max(v2 / 100, 0);
-      let pM = Math.max(v3 / 100, 0);
-      let sum = pF + pM;
-
-      if (sum > 1 && sum > 0) {
-        // Normalize so fat% + muscle% = 100%, bone% = 0
-        pF = pF / sum;
-        pM = pM / sum;
-      }
-
-      tf = tw * pF;
-      tm = tw * pM;
-      // Bone will be whatever remainder is left; could be 0 if sums to 1
-      break;
-    }
-
-    case "same_weight":
-    default: {
-      tw = cw;
-      tf = cf;
-      tm = cm;
-      break;
-    }
-  }
-
-  const tb = computeBone(tw, tf, tm);
-  return { weight: tw, fat: tf, muscle: tm, bone: tb };
-}
-
-/* ---------- Summary pill ---------- */
-
-function updateSummaryPill(currentComp, targetComp) {
-  const pill = document.getElementById("summaryPill");
-  if (!pill) return;
-
-  if (currentComp.weight <= 0 || targetComp.weight <= 0) {
-    pill.textContent =
-      "Enter your current stats and goal to see a quick summary here.";
-    return;
-  }
-
-  const cw = currentComp.weight.toFixed(1);
-  const cFat = currentComp.fatPct.toFixed(1);
-  const tw = targetComp.weight.toFixed(1);
-  const tFat = targetComp.fatPct.toFixed(1);
-  const tMuscle = targetComp.musclePct.toFixed(1);
-
-  pill.textContent = "";
-  const strong = document.createElement("strong");
-  strong.textContent = `${cw} lbs · ${cFat}% fat`;
-  const arrow = document.createTextNode("  →  ");
-  const targetSpan = document.createElement("span");
-  targetSpan.textContent = `${tw} lbs · ${tFat}% fat · ${tMuscle}% muscle`;
-
-  pill.appendChild(strong);
-  pill.appendChild(arrow);
-  pill.appendChild(targetSpan);
-}
-
-/* ---------- Main calculation ---------- */
 
 function recalc() {
-  const current = {
-    weight: getNumber("currentWeight"),
-    fat: getNumber("currentFat"),
-    muscle: getNumber("currentMuscle"),
-  };
-
-  const currentBone = computeBone(current.weight, current.fat, current.muscle);
-  const currentComp = makeComposition(
-    current.weight,
-    current.fat,
-    current.muscle,
-    currentBone
-  );
-
+  const currentWeight = getNumber("currentWeight");
+  const fatMass = getNumber("currentFat");
+  const muscleMass = getNumber("currentMuscle");
+  const otherMass = Math.max(currentWeight - fatMass - muscleMass, 0);
+  const fatPct = currentWeight ? (fatMass / currentWeight) * 100 : 0;
+  const musclePct = currentWeight ? (muscleMass / currentWeight) * 100 : 0;
+  const bonePct = currentWeight ? (otherMass / currentWeight) * 100 : 0;
+  setText("currentFatPct", fatPct.toFixed(1));
+  setText("currentMusclePct", musclePct.toFixed(1));
+  setText("currentBonePct", bonePct.toFixed(1));
   const goal = getGoal();
-  const target = computeTargetFromGoal(current, goal);
-  const targetComp = makeComposition(
-    target.weight,
-    target.fat,
-    target.muscle,
-    target.bone
-  );
-
-  // Percentages
-  setText("currentFatPct", currentComp.fatPct.toFixed(1));
-  setText("currentMusclePct", currentComp.musclePct.toFixed(1));
-  setText("currentBonePct", currentComp.bonePct.toFixed(1));
-
-  setText("targetFatPct", targetComp.fatPct.toFixed(1));
-  setText("targetMusclePct", targetComp.musclePct.toFixed(1));
-  setText("targetBonePct", targetComp.bonePct.toFixed(1));
-
-  // Differences
-  const wDiff = targetComp.weight - currentComp.weight;
-  const fDiff = targetComp.fatMass - currentComp.fatMass;
-  const mDiff = targetComp.muscleMass - currentComp.muscleMass;
-
-  setText("weightDiffText", diffText(wDiff));
-  setText("fatChangeText", diffText(fDiff));
-  setText("muscleChangeText", diffText(mDiff));
-
-  updateQuickSummary(wDiff, fDiff, mDiff);
-  updateChart(currentComp, targetComp);
-  updateSummaryPill(currentComp, targetComp);
+  const target = computeTarget(goal, { currentWeight, fatMass, muscleMass, otherMass });
+  updateTargetUI(target);
+  updateQuickSummary({ currentWeight, fatMass, muscleMass }, target);
+  renderCompositionChart({ fatPct, musclePct, bonePct }, target);
 }
 
-function diffText(delta) {
-  if (!Number.isFinite(delta) || Math.abs(delta) < 0.01) {
-    return "No change";
+function computeTarget(goal, current) {
+  let weight = current.currentWeight;
+  let fat = current.fatMass;
+  let muscle = current.muscleMass;
+  switch (goal.type) {
+    case "target_weight":
+      weight = goal.value;
+      break;
+    case "target_fat_mass":
+      fat = goal.value;
+      weight = fat + current.muscleMass + current.otherMass;
+      break;
+    case "target_fat_pct":
+      weight = current.currentWeight;
+      fat = (goal.value / 100) * weight;
+      break;
+    case "target_muscle_mass":
+      muscle = goal.value;
+      weight = muscle + current.fatMass + current.otherMass;
+      break;
+    case "target_muscle_pct":
+      weight = current.currentWeight;
+      muscle = (goal.value / 100) * weight;
+      break;
+    case "target_weight_fat_pct":
+      weight = goal.value;
+      fat = (goal.value2 / 100) * weight;
+      break;
+    case "target_weight_muscle_pct":
+      weight = goal.value;
+      muscle = (goal.value2 / 100) * weight;
+      break;
+    case "target_weight_fat_muscle_pct":
+      weight = goal.value;
+      fat = (goal.value2 / 100) * weight;
+      muscle = (goal.value3 / 100) * weight;
+      break;
+    default:
+      break;
   }
-  const sign = delta > 0 ? "+" : "−";
-  return `${sign}${Math.abs(delta).toFixed(2)} lbs`;
+  const other = Math.max(weight - fat - muscle, 0);
+  return { weight, fat, muscle, other };
 }
 
-function updateQuickSummary(w, f, m) {
-  const el = document.getElementById("quickSummary");
-  const parts = [];
-
-  if (Math.abs(w) >= 0.1) {
-    const dir = w < 0 ? "lighter" : "heavier";
-    parts.push(`${Math.abs(w).toFixed(1)} lbs ${dir}`);
-  }
-  if (Math.abs(f) >= 0.1) {
-    const dir = f < 0 ? "less fat" : "more fat";
-    parts.push(`${Math.abs(f).toFixed(1)} lbs ${dir}`);
-  }
-  if (Math.abs(m) >= 0.1) {
-    const dir = m < 0 ? "less muscle" : "more muscle";
-    parts.push(`${Math.abs(m).toFixed(1)} lbs ${dir}`);
-  }
-
-  el.textContent =
-    parts.length === 0
-      ? "Current and what-if numbers are effectively the same."
-      : parts.join(" • ");
+function updateTargetUI(target) {
+  const total = target.weight || 1;
+  setText("targetFatPct", ((target.fat / total) * 100 || 0).toFixed(1));
+  setText("targetMusclePct", ((target.muscle / total) * 100 || 0).toFixed(1));
+  setText("targetBonePct", ((target.other / total) * 100 || 0).toFixed(1));
+  const weightDiff = target.weight - getNumber("currentWeight");
+  const fatDiff = target.fat - getNumber("currentFat");
+  const muscleDiff = target.muscle - getNumber("currentMuscle");
+  setText("weightDiffText", `${weightDiff >= 0 ? "+" : ""}${weightDiff.toFixed(1)} lbs`);
+  setText("fatChangeText", `${fatDiff >= 0 ? "+" : ""}${fatDiff.toFixed(1)} lbs fat`);
+  setText("muscleChangeText", `${muscleDiff >= 0 ? "+" : ""}${muscleDiff.toFixed(1)} lbs muscle`);
 }
 
-/* ---------- Chart ---------- */
+function updateQuickSummary(current, target) {
+  const diff = target.weight - current.currentWeight;
+  const summary = qs("#quickSummary");
+  if (!current.currentWeight) {
+    summary.textContent = "Enter your stats to see a quick difference summary.";
+    return;
+  }
+  summary.textContent =
+    diff === 0
+      ? "You'd maintain your current weight and composition."
+      : diff > 0
+      ? `Gain ${diff.toFixed(1)} lbs while shifting composition.`
+      : `Lose ${Math.abs(diff).toFixed(1)} lbs while shifting composition.`;
+}
 
-function updateChart(currentComp, targetComp) {
-  const ctx = document.getElementById("compositionChart");
-  if (!ctx) return;
-
+function renderCompositionChart(current, target) {
+  const ctx = qs("#compositionChart");
   const data = {
-    labels: ["Current", "What-If"],
+    labels: ["Current", "Target"],
     datasets: [
-      {
-        label: "Fat",
-        data: [currentComp.fatMass, targetComp.fatMass],
-      },
-      {
-        label: "Muscle",
-        data: [currentComp.muscleMass, targetComp.muscleMass],
-      },
-      {
-        label: "Bone (auto)",
-        data: [currentComp.boneMass, targetComp.boneMass],
-      },
+      { label: "Fat", data: [current.fatPct, (target.fat / target.weight) * 100 || 0], backgroundColor: "#ef4444" },
+      { label: "Muscle", data: [current.musclePct, (target.muscle / target.weight) * 100 || 0], backgroundColor: "#22c55e" },
+      { label: "Other", data: [current.bonePct, (target.other / target.weight) * 100 || 0], backgroundColor: "#3b82f6" },
     ],
   };
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: { usePointStyle: true },
-      },
-      tooltip: {
-        callbacks: {
-          label: (ctx) =>
-            `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} lbs`,
-        },
-      },
-    },
-    scales: {
-      x: { stacked: true },
-      y: { stacked: true },
-    },
-  };
-
-  if (compositionChart) {
-    compositionChart.data = data;
-    compositionChart.update();
-  } else {
-    compositionChart = new Chart(ctx, {
-      type: "bar",
-      data,
-      options,
-    });
-  }
-}
-
-/* ---------- Workouts (rebuilt) ---------- */
-
-function initWorkoutBuilder() {
-  loadWorkoutsFromStorage();
-
-  const addExerciseBtn = document.getElementById("addExerciseRow");
-  if (addExerciseBtn) {
-    addExerciseBtn.addEventListener("click", () => addExerciseRow());
-  }
-
-  const saveBtn = document.getElementById("saveWorkoutButton");
-  if (saveBtn) saveBtn.addEventListener("click", saveWorkoutFromForm);
-
-  renderExerciseRows();
-  renderWorkoutList();
-}
-
-  function loadWorkoutsFromStorage() {
-    try {
-      const raw = localStorage.getItem(WORKOUT_STORAGE_KEY);
-      workouts = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(workouts)) workouts = [];
-      workouts = workouts
-        .map((w) => normalizeWorkout(w))
-        .filter(Boolean);
-    } catch {
-      workouts = [];
-    }
-  }
-
-function saveWorkoutsToStorage() {
-  try {
-    localStorage.setItem(WORKOUT_STORAGE_KEY, JSON.stringify(workouts));
-  } catch {
-    // ignore
-  }
-}
-
-function renderExerciseRows() {
-  const container = document.getElementById("exerciseRows");
-  if (!container) return;
-
-  container.innerHTML = "";
-  addExerciseRow();
-}
-
-function addExerciseRow(data = {}) {
-  const container = document.getElementById("exerciseRows");
-  if (!container) return;
-
-  const row = document.createElement("div");
-  row.className = "exercise-row";
-
-  row.innerHTML = `
-    <div class="field">
-      <label>Exercise</label>
-      <input type="text" class="exercise-name" placeholder="e.g. Bench press" value="${data.name || ""}" />
-    </div>
-    <div class="field">
-      <label>Weight / load</label>
-      <input type="text" class="exercise-weight" placeholder="e.g. 135 lb" value="${data.weight || ""}" />
-    </div>
-    <div class="field">
-      <label>Reps</label>
-      <input type="number" class="exercise-reps" inputmode="numeric" min="0" placeholder="e.g. 8" value="${data.reps || ""}" />
-    </div>
-    <div class="field">
-      <label>Sets</label>
-      <input type="number" class="exercise-sets" inputmode="numeric" min="0" placeholder="e.g. 4" value="${data.sets || ""}" />
-    </div>
-  `;
-
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "button button-ghost remove-row";
-  removeBtn.textContent = "Remove";
-  removeBtn.addEventListener("click", () => {
-    row.remove();
-    ensureAtLeastOneRow();
-  });
-
-  row.appendChild(removeBtn);
-  container.appendChild(row);
-}
-
-function ensureAtLeastOneRow() {
-  const container = document.getElementById("exerciseRows");
-  if (!container) return;
-  if (!container.querySelector(".exercise-row")) {
-    addExerciseRow();
-  }
-}
-
-function collectExercisesFromForm() {
-  const container = document.getElementById("exerciseRows");
-  if (!container) return [];
-
-  return Array.from(container.querySelectorAll(".exercise-row"))
-    .map((row) => {
-      const name = row.querySelector(".exercise-name")?.value.trim() || "";
-      const weight = row.querySelector(".exercise-weight")?.value.trim() || "";
-      const reps = row.querySelector(".exercise-reps")?.value.trim() || "";
-      const sets = row.querySelector(".exercise-sets")?.value.trim() || "";
-      return { name, weight, reps, sets };
-    })
-    .filter((ex) => ex.name);
-}
-
-function saveWorkoutFromForm() {
-  const nameInput = document.getElementById("workoutName");
-  const helper = document.getElementById("workoutHelper");
-
-  if (!nameInput) return;
-
-  const exercises = collectExercisesFromForm();
-  if (!exercises.length) {
-    if (helper)
-      helper.textContent = "Add at least one exercise with a name to save.";
-    return;
-  }
-
-  const workout = {
-    id: Date.now(),
-    name: nameInput.value.trim() || "Untitled workout",
-    exercises,
-  };
-
-  workouts.push(workout);
-  saveWorkoutsToStorage();
-  renderWorkoutList();
-
-  nameInput.value = "";
-  renderExerciseRows();
-  if (helper)
-    helper.textContent = "Saved! Build another session whenever you’re ready.";
-}
-
-  function renderWorkoutList() {
-    const list = document.getElementById("workoutList");
-    if (!list) return;
-
-  list.innerHTML = "";
-
-  if (!workouts.length) {
-    list.innerHTML =
-      '<li class="empty-note">No workouts yet. Add exercises, then save your session.</li>';
-    return;
-  }
-
-  workouts.forEach((workout) => {
-    const item = document.createElement("li");
-    item.className = "workout-item";
-
-    const header = document.createElement("div");
-    header.className = "workout-item-header";
-
-    const titleWrap = document.createElement("div");
-    titleWrap.className = "workout-title";
-
-    const nameEl = document.createElement("h3");
-    nameEl.className = "workout-name";
-    nameEl.textContent = workout.name;
-    titleWrap.appendChild(nameEl);
-
-    const detail = document.createElement("p");
-    detail.className = "workout-detail";
-    detail.textContent = summarizeWorkout(extractExerciseText(workout.exercises));
-    titleWrap.appendChild(detail);
-
-    if (workout.exercises?.length) {
-      const exerciseList = document.createElement("ul");
-      exerciseList.className = "workout-exercises";
-        workout.exercises.forEach((ex) => {
-          const li = document.createElement("li");
-          li.textContent = formatExerciseDisplay(ex);
-          exerciseList.appendChild(li);
-        });
-      titleWrap.appendChild(exerciseList);
-    }
-
-    const actions = document.createElement("div");
-    actions.className = "workout-actions";
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Delete";
-    deleteBtn.addEventListener("click", () => {
-      workouts = workouts.filter((w) => w.id !== workout.id);
-      saveWorkoutsToStorage();
-      renderWorkoutList();
-    });
-
-    actions.append(deleteBtn);
-    header.append(titleWrap, actions);
-    item.append(header);
-    list.appendChild(item);
+  if (compositionChart) compositionChart.destroy();
+  compositionChart = new Chart(ctx, {
+    type: "bar",
+    data,
+    options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { x: { stacked: true }, y: { stacked: true } } },
   });
 }
 
-function extractExerciseText(exercises = []) {
-  return exercises.map((ex) => formatExerciseDisplay(ex));
-}
-
-function summarizeWorkout(exercises) {
-  if (!exercises.length) return "No exercises yet";
-  if (exercises.length === 1) return exercises[0];
-  return `${exercises[0]} + ${exercises.length - 1} more`;
-}
-
-  function formatExerciseDisplay(ex) {
-    const normalized = normalizeExercise(ex);
-    if (!normalized) return "";
-
-    const { name, sets, reps, weight } = normalized;
-    const parts = [];
-    if (sets) parts.push(`${sets} set${sets === "1" ? "" : "s"}`);
-    if (reps) parts.push(`${reps} reps`);
-    if (weight) parts.push(`@ ${weight}`);
-    const suffix = parts.length ? ` — ${parts.join(" · ")}` : "";
-    return `${name}${suffix}`;
-  }
-
-  function normalizeWorkout(workout) {
-    if (!workout || typeof workout !== "object") return null;
-
-    const exercises = Array.isArray(workout.exercises)
-      ? workout.exercises
-      : [];
-
-    const normalizedExercises = exercises
-      .map((ex) => normalizeExercise(ex))
-      .filter(Boolean);
-
-    return {
-      ...workout,
-      exercises: normalizedExercises,
-    };
-  }
-
-  function normalizeExercise(ex) {
-    if (typeof ex === "string") {
-      const name = ex.trim();
-      if (!name) return null;
-      return { name, weight: "", reps: "", sets: "" };
-    }
-
-    if (!ex || typeof ex !== "object") return null;
-
-    const name = ex.name || "";
-    if (!name) return null;
-
-    return {
-      name,
-      weight: ex.weight || "",
-      reps: ex.reps || "",
-      sets: ex.sets || "",
-    };
-  }
-/* ---------- Scenarios (full state) ---------- */
-
-function loadScenariosFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    scenarios = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(scenarios)) scenarios = [];
-  } catch {
-    scenarios = [];
-  }
-  renderScenarioList();
-}
-
-function saveScenariosToStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios));
-  } catch {
-    // ignore
-  }
-}
-
-function saveCurrentScenario() {
-  const nameInput = document.getElementById("scenarioName");
-  const name =
-    (nameInput && nameInput.value.trim()) ||
-    `Scenario ${scenarios.length + 1}`;
-
+function saveScenario() {
+  const name = prompt("Scenario name?");
+  if (!name) return;
   const scenario = {
-    id: Date.now(),
     name,
-    inputs: {
-      currentWeight: getNumber("currentWeight"),
-      currentFat: getNumber("currentFat"),
-      currentMuscle: getNumber("currentMuscle"),
-      targetType: document.getElementById("targetType").value,
-      targetValue1:
-        parseFloat(document.getElementById("targetValue").value) || "",
-      targetValue2:
-        parseFloat(document.getElementById("targetValue2").value) || "",
-      targetValue3:
-        parseFloat(document.getElementById("targetValue3").value) || "",
-    },
+    currentWeight: getNumber("currentWeight"),
+    currentFat: getNumber("currentFat"),
+    currentMuscle: getNumber("currentMuscle"),
+    goal: getGoal(),
   };
-
   scenarios.push(scenario);
-  saveScenariosToStorage();
+  saveToStorage(STORAGE_KEYS.scenarios, scenarios);
   renderScenarioList();
-
-  if (nameInput) nameInput.value = "";
 }
 
 function renderScenarioList() {
-  const list = document.getElementById("scenarioList");
-  list.innerHTML = "";
-
-  if (!scenarios.length) {
-    list.innerHTML =
-      '<li style="color:#9ca3af;font-size:0.8rem;">No saved scenarios yet.</li>';
-    return;
-  }
-
-  scenarios.forEach((s) => {
-    const li = document.createElement("li");
-    li.className = "scenario-item";
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "scenario-name";
-    nameSpan.textContent = s.name;
-
-    const actions = document.createElement("div");
-    actions.className = "scenario-actions";
-
-    const loadBtn = document.createElement("button");
-    loadBtn.textContent = "Load";
-    loadBtn.addEventListener("click", () => applyScenario(s));
-
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "✕";
-    delBtn.addEventListener("click", () => deleteScenario(s.id));
-
-    actions.append(loadBtn, delBtn);
-    li.append(nameSpan, actions);
-    list.appendChild(li);
+  const list = qs("#scenarioList");
+  list.innerHTML = scenarios
+    .map(
+      (s, i) => `
+      <li>
+        <div class="helper-row" style="justify-content: space-between;">
+          <div><strong>${s.name}</strong><p class="workout-meta">Goal type: ${s.goal.type}</p></div>
+          <div class="helper-row">
+            <button class="button-secondary" data-idx="${i}" data-action="load">Load</button>
+            <button class="button-secondary" data-idx="${i}" data-action="delete">Delete</button>
+          </div>
+        </div>
+      </li>`
+    )
+    .join("");
+  list.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.idx);
+      const action = btn.dataset.action;
+      if (action === "delete") {
+        scenarios.splice(idx, 1);
+        saveToStorage(STORAGE_KEYS.scenarios, scenarios);
+        renderScenarioList();
+      } else {
+        const s = scenarios[idx];
+        qs("#currentWeight").value = s.currentWeight;
+        qs("#currentFat").value = s.currentFat;
+        qs("#currentMuscle").value = s.currentMuscle;
+        qs("#targetType").value = s.goal.type;
+        qs("#targetValue").value = s.goal.value;
+        qs("#targetValue2").value = s.goal.value2;
+        qs("#targetValue3").value = s.goal.value3;
+        recalc();
+      }
+    });
   });
 }
 
-function applyScenario(scenario) {
-  const inp = scenario.inputs || {};
-
-  document.getElementById("currentWeight").value =
-    inp.currentWeight ?? "";
-  document.getElementById("currentFat").value = inp.currentFat ?? "";
-  document.getElementById("currentMuscle").value =
-    inp.currentMuscle ?? "";
-
-  document.getElementById("targetType").value =
-    inp.targetType || "same_weight";
-
-  document.getElementById("targetValue").value =
-    inp.targetValue1 ?? "";
-  document.getElementById("targetValue2").value =
-    inp.targetValue2 ?? "";
-  document.getElementById("targetValue3").value =
-    inp.targetValue3 ?? "";
-
+function initCalculator() {
+  ["currentWeight", "currentFat", "currentMuscle"].forEach((id) =>
+    qs(`#${id}`).addEventListener("input", recalc)
+  );
+  ["targetType", "targetValue", "targetValue2", "targetValue3"].forEach((id) =>
+    qs(`#${id}`).addEventListener("input", recalc)
+  );
+  qs("#copyCurrentToTarget").addEventListener("click", () => {
+    qs("#targetType").value = "same_weight";
+    qs("#targetValue").value = "";
+    qs("#targetValue2").value = "";
+    qs("#targetValue3").value = "";
+    recalc();
+  });
+  qs("#saveScenarioButton").addEventListener("click", saveScenario);
+  renderScenarioList();
   recalc();
 }
 
-function deleteScenario(id) {
-  scenarios = scenarios.filter((s) => s.id !== id);
-  saveScenariosToStorage();
-  renderScenarioList();
+function exportCsv() {
+  const rows = [
+    ["date", "title", "notes", "exercise", "reps", "weight", "set_note"],
+  ];
+  workouts.forEach((w) => {
+    w.exercises.forEach((ex) => {
+      ex.sets.forEach((s) => {
+        rows.push([w.date, w.title, w.notes, ex.name, s.reps, s.weight, s.note]);
+      });
+    });
+  });
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  downloadFile(csv, "workouts.csv", "text/csv");
 }
+
+function importFile(type) {
+  const picker = qs("#filePicker");
+  picker.accept = type === "csv" ? ".csv" : ".json";
+  picker.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    if (type === "csv") {
+      importCsv(text);
+    } else {
+      importJson(text);
+    }
+    picker.value = "";
+  };
+  picker.click();
+}
+
+function importCsv(text) {
+  const lines = text.trim().split(/\r?\n/).slice(1);
+  lines.forEach((line) => {
+    const cols = line.match(/\"([^\"]*)\"/g)?.map((c) => c.replace(/\"/g, "")) || [];
+    const [date, title, notes, exercise, reps, weight, note] = cols;
+    const existing = workouts.find((w) => w.date === date && w.title === title) || {
+      id: crypto.randomUUID(),
+      date,
+      title,
+      notes,
+      exercises: [],
+      totals: { sets: 0, reps: 0, volume: 0 },
+    };
+    let ex = existing.exercises.find((e) => e.name === exercise);
+    if (!ex) {
+      ex = { name: exercise, sets: [] };
+      existing.exercises.push(ex);
+    }
+    const set = { reps: Number(reps), weight: Number(weight), note, volume: Number(reps) * Number(weight) };
+    ex.sets.push(set);
+    existing.totals.sets += 1;
+    existing.totals.reps += set.reps;
+    existing.totals.volume += set.volume;
+    if (!workouts.includes(existing)) workouts.push(existing);
+  });
+  saveToStorage(STORAGE_KEYS.workouts, workouts);
+  updateAnalytics();
+}
+
+function exportJson() {
+  const payload = { workouts, exercises: exerciseLibrary, settings: loadSettings(), scenarios };
+  downloadFile(JSON.stringify(payload, null, 2), "lift-ledger-backup.json", "application/json");
+}
+
+function importJson(text) {
+  try {
+    const data = JSON.parse(text);
+    workouts = data.workouts || workouts;
+    exerciseLibrary = data.exercises || exerciseLibrary;
+    scenarios = data.scenarios || scenarios;
+    saveToStorage(STORAGE_KEYS.workouts, workouts);
+    saveToStorage(STORAGE_KEYS.exercises, exerciseLibrary);
+    saveToStorage(STORAGE_KEYS.scenarios, scenarios);
+    renderExerciseLibrary();
+    refreshExerciseDatalists();
+    updateAnalytics();
+    renderScenarioList();
+  } catch (e) {
+    alert("Invalid JSON file");
+  }
+}
+
+function downloadFile(content, name, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function initImportExport() {
+  qs("#exportCsv").addEventListener("click", exportCsv);
+  qs("#exportJson").addEventListener("click", exportJson);
+  qs("#importCsv").addEventListener("click", () => importFile("csv"));
+  qs("#importJson").addEventListener("click", () => importFile("json"));
+}
+
+function initUnitSelect() {
+  const select = qs("#unitSelect");
+  const settings = loadSettings();
+  select.value = settings.unit;
+  select.addEventListener("change", () => {
+    const updated = { ...loadSettings(), unit: select.value };
+    saveSettings(updated);
+    updateAnalytics();
+  });
+}
+
+function registerPwa() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js");
+  }
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    qs("#installButton").disabled = false;
+  });
+  qs("#installButton").addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+  });
+}
+
+function boot() {
+  initData();
+  initTheme();
+  initTabs();
+  renderExerciseLibrary();
+  refreshExerciseDatalists();
+  resetWorkoutForm();
+  updateAnalytics();
+  initCalculator();
+  initImportExport();
+  initUnitSelect();
+  qs("#addExercise").addEventListener("click", () => addExerciseCard());
+  qs("#saveWorkout").addEventListener("click", saveWorkout);
+  qs("#historySearch").addEventListener("input", renderHistory);
+  qs("#historyExerciseFilter").addEventListener("input", renderHistory);
+  qs("#historyVolumeFilter").addEventListener("input", renderHistory);
+  qs("#historyRepsFilter").addEventListener("input", renderHistory);
+  qs("#addExerciseLibrary").addEventListener("click", addExerciseToLibrary);
+  registerPwa();
+}
+
+document.addEventListener("DOMContentLoaded", boot);

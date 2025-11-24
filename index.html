@@ -2,84 +2,188 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <title>Weight What-If Calculator</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lift Ledger</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
-  <!-- Chart.js for the composition chart -->
+  <meta name="theme-color" content="#0b1220" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
   <header class="app-header">
     <div class="app-header-inner">
-      <div class="header-row">
-        <div class="header-text">
-          <h1>Weight What-If</h1>
-          <p>Play with “what-if” scenarios for your weight, fat, and muscle.</p>
-        </div>
-        <button id="themeToggle" class="theme-toggle" type="button">
-          ☀️ Light
-        </button>
+      <div>
+        <p class="eyebrow">Progressive web app</p>
+        <h1>Lift Ledger</h1>
+        <p class="lede">Log workouts, analyze trends, run what-if calculators, and keep everything saved locally.</p>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggle" class="pill-button" type="button">☀️ Light</button>
+        <button id="installButton" class="pill-button" type="button">⬇️ Install</button>
       </div>
     </div>
+    <nav class="tab-bar" role="tablist" aria-label="App sections">
+      <button class="tab-button active" data-tab="workouts" role="tab" aria-selected="true" aria-controls="workoutsTab">Workouts</button>
+      <button class="tab-button" data-tab="analytics" role="tab" aria-selected="false" aria-controls="analyticsTab">Analytics/History</button>
+      <button class="tab-button" data-tab="calculators" role="tab" aria-selected="false" aria-controls="calculatorsTab">Calculators</button>
+      <button class="tab-button" data-tab="settings" role="tab" aria-selected="false" aria-controls="settingsTab">Settings</button>
+    </nav>
   </header>
 
   <main class="app-main">
-    <div class="tab-bar" role="tablist" aria-label="Tools">
-      <button class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="calculatorTab" data-tab="calculator">
-        Calculators
-      </button>
-      <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="workoutTab" data-tab="workout">
-        Workouts
-      </button>
-    </div>
-
-    <div class="tab-panel" id="calculatorTab" role="tabpanel">
-      <!-- Summary pill -->
-      <div id="summaryPill" class="summary-pill">
-        Enter your current stats and goal to see a quick summary here.
-      </div>
-
-      <section class="cards-grid">
-
-        <!-- Current stats -->
+    <section class="tab-panel" id="workoutsTab" role="tabpanel">
+      <div class="layout-grid">
         <section class="card">
-          <h2>Current Stats</h2>
-          <p class="card-subtitle">Enter your latest numbers from your scale.</p>
-
-          <div class="field">
-            <label for="currentWeight">Total weight (lbs)</label>
-            <input id="currentWeight" type="number" inputmode="decimal" step="0.01" />
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Log workouts</p>
+              <h2>Build a session</h2>
+              <p class="card-subtitle">Everything updates live as you type. Duplicate sets to go faster.</p>
+            </div>
+            <div class="totals" id="sessionTotals">0 sets · 0 reps · 0 volume</div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>Date</span>
+              <input id="workoutDate" type="date" />
+            </label>
+            <label class="field">
+              <span>Title</span>
+              <input id="workoutTitle" type="text" placeholder="Push day" />
+            </label>
+            <label class="field">
+              <span>Notes</span>
+              <input id="workoutNotes" type="text" placeholder="Felt strong, good sleep" />
+            </label>
           </div>
 
-          <div class="field">
-            <label for="currentFat">Body fat mass (lbs)</label>
-            <input id="currentFat" type="number" inputmode="decimal" step="0.01" />
-          </div>
+          <div id="exerciseArea" class="exercise-area"></div>
 
-          <div class="field">
-            <label for="currentMuscle">Muscle mass (lbs)</label>
-            <input id="currentMuscle" type="number" inputmode="decimal" step="0.01" />
-          </div>
-
-          <div class="summary">
-            <h3>Current Composition</h3>
-            <ul>
-              <li>Body fat: <span id="currentFatPct">0.0</span>%</li>
-              <li>Muscle: <span id="currentMusclePct">0.0</span>%</li>
-              <li>Bone (auto): <span id="currentBonePct">0.0</span>%</li>
-            </ul>
+          <div class="helper-row">
+            <button id="addExercise" class="button button-secondary" type="button">+ Add exercise</button>
+            <button id="saveWorkout" class="button" type="button">Save workout</button>
           </div>
         </section>
 
-        <!-- What-if goal -->
         <section class="card">
-          <h2>What-If Goal</h2>
-          <p class="card-subtitle">Choose a goal type and enter values.</p>
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Exercise library</p>
+              <h2>Browse & edit</h2>
+              <p class="card-subtitle">Preloaded common moves plus your own additions.</p>
+            </div>
+            <div class="pill">Categories for quick scanning</div>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>Exercise name</span>
+              <input id="newExerciseName" type="text" placeholder="Front squat" />
+            </label>
+            <label class="field">
+              <span>Category</span>
+              <input id="newExerciseCategory" type="text" placeholder="Legs" />
+            </label>
+            <button id="addExerciseLibrary" class="button" type="button">Add to library</button>
+          </div>
+          <div class="exercise-library" id="exerciseLibrary"></div>
+        </section>
 
-          <div class="field">
-            <label for="targetType">Goal type</label>
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Workout history</p>
+              <h2>Saved sessions</h2>
+              <p class="card-subtitle">Search, sort, and load any past workout.</p>
+            </div>
+            <div class="field">
+              <input id="historySearch" type="search" placeholder="Search title or exercise" />
+            </div>
+          </div>
+          <div class="history-controls">
+            <label class="field">
+              <span>Filter by exercise</span>
+              <input id="historyExerciseFilter" type="text" placeholder="Bench press" />
+            </label>
+            <label class="field">
+              <span>Min volume</span>
+              <input id="historyVolumeFilter" type="number" inputmode="decimal" />
+            </label>
+            <label class="field">
+              <span>Min reps</span>
+              <input id="historyRepsFilter" type="number" inputmode="decimal" />
+            </label>
+          </div>
+          <ul class="workout-list" id="workoutHistory"></ul>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="analyticsTab" role="tabpanel" hidden>
+      <div class="layout-grid">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Analytics</p>
+              <h2>Weekly training volume</h2>
+              <p class="card-subtitle">Real-time charts for volume and frequency.</p>
+            </div>
+          </div>
+          <canvas id="volumeChart" height="120"></canvas>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Frequency</p>
+              <h2>Workout cadence</h2>
+              <p class="card-subtitle">See how often you trained each week.</p>
+            </div>
+          </div>
+          <canvas id="frequencyChart" height="120"></canvas>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">PR Finder</p>
+              <h2>Heaviest sets</h2>
+              <p class="card-subtitle">Automatically highlights top sets per exercise.</p>
+            </div>
+          </div>
+          <ul class="pr-list" id="prList"></ul>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="calculatorsTab" role="tabpanel" hidden>
+      <div class="layout-grid calculators">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">What-if calculator</p>
+              <h2>Current stats</h2>
+              <p class="card-subtitle">Enter your scale data to calculate composition.</p>
+            </div>
+          </div>
+          <label class="field"><span>Total weight (lbs)</span><input id="currentWeight" type="number" inputmode="decimal" step="0.01" /></label>
+          <label class="field"><span>Body fat mass (lbs)</span><input id="currentFat" type="number" inputmode="decimal" step="0.01" /></label>
+          <label class="field"><span>Muscle mass (lbs)</span><input id="currentMuscle" type="number" inputmode="decimal" step="0.01" /></label>
+          <div class="summary-box">
+            <p>Body fat: <span id="currentFatPct">0.0</span>% · Muscle: <span id="currentMusclePct">0.0</span>% · Bone: <span id="currentBonePct">0.0</span>%</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Goal inputs</p>
+              <h2>What-if target</h2>
+              <p class="card-subtitle">Mix and match goal types to see differences.</p>
+            </div>
+          </div>
+          <label class="field">
+            <span>Goal type</span>
             <select id="targetType">
               <option value="same_weight">Keep same weight & composition</option>
               <option value="target_weight">Target weight (lbs)</option>
@@ -91,138 +195,116 @@
               <option value="target_weight_muscle_pct">Target weight + muscle %</option>
               <option value="target_weight_fat_muscle_pct">Target weight + fat % + muscle %</option>
             </select>
+          </label>
+          <div class="field-grid">
+            <label class="field" id="targetValueWrapper"><span id="targetValueLabel">Goal value</span><input id="targetValue" type="number" step="0.01" /></label>
+            <label class="field" id="targetValue2Wrapper" hidden><span id="targetValue2Label">Second goal value</span><input id="targetValue2" type="number" step="0.01" /></label>
+            <label class="field" id="targetValue3Wrapper" hidden><span id="targetValue3Label">Third goal value</span><input id="targetValue3" type="number" step="0.01" /></label>
           </div>
-
-          <!-- Row: weight + second value (fat% or muscle%) -->
-          <div class="goal-row">
-            <div class="field goal-col" id="targetValueWrapper">
-              <label id="targetValueLabel" for="targetValue">Goal value</label>
-              <input id="targetValue" type="number" inputmode="decimal" step="0.01" />
-            </div>
-
-            <div class="field goal-col" id="targetValue2Wrapper" style="display:none;">
-              <label id="targetValue2Label" for="targetValue2">Second goal value</label>
-              <input id="targetValue2" type="number" inputmode="decimal" step="0.01" />
-            </div>
+          <p class="helper-text" id="targetHelper">Using your current weight and composition.</p>
+          <div class="helper-row">
+            <button id="copyCurrentToTarget" class="button button-secondary" type="button">Reset to "same weight"</button>
+            <button id="saveScenarioButton" class="button" type="button">Save scenario</button>
           </div>
-
-          <!-- Second row: third value (muscle %) -->
-          <div class="field" id="targetValue3Wrapper" style="display:none;">
-            <label id="targetValue3Label" for="targetValue3">Third goal value</label>
-            <input id="targetValue3" type="number" inputmode="decimal" step="0.01" />
+          <div class="summary-box">
+            <p>Target fat: <span id="targetFatPct">0.0</span>% · Target muscle: <span id="targetMusclePct">0.0</span>% · Target bone: <span id="targetBonePct">0.0</span>%</p>
           </div>
-
-          <small id="targetHelper" class="helper-text">
-            Using your current weight and composition.
-          </small>
-
-          <button id="copyCurrentToTarget" class="button button-secondary full-width-mobile" type="button">
-            Reset to “same weight”
-          </button>
-
-          <div class="summary" style="margin-top:0.8rem;">
-            <h3>Target Composition</h3>
-            <ul>
-              <li>Body fat: <span id="targetFatPct">0.0</span>%</li>
-              <li>Muscle: <span id="targetMusclePct">0.0</span>%</li>
-              <li>Bone (auto): <span id="targetBonePct">0.0</span>%</li>
-            </ul>
-          </div>
+          <p class="quick-summary" id="quickSummary">Enter your stats to see a quick difference summary.</p>
         </section>
 
-        <!-- Differences -->
         <section class="card">
-          <h2>Changes Needed</h2>
-          <p class="card-subtitle">How different is your what-if from today?</p>
-
-          <div class="result-line">
-            <span class="result-label">Weight difference:</span>
-            <span id="weightDiffText" class="result-value">No change</span>
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Changes needed</p>
+              <h2>Difference</h2>
+              <p class="card-subtitle">Live comparison of current vs what-if.</p>
+            </div>
           </div>
-          <div class="result-line">
-            <span class="result-label">Body fat change:</span>
-            <span id="fatChangeText" class="result-value">No change</span>
-          </div>
-          <div class="result-line">
-            <span class="result-label">Muscle change:</span>
-            <span id="muscleChangeText" class="result-value">No change</span>
-          </div>
-
-          <hr class="divider" />
-
-          <h3>Quick Summary</h3>
-          <p id="quickSummary" class="quick-summary">
-            Enter your stats and select a goal to see differences.
-          </p>
-        </section>
-
-        <!-- Scenarios -->
-        <section class="card">
-          <h2>Saved Scenarios</h2>
-          <p class="card-subtitle">Save what-if states & load them anytime.</p>
-
-          <div class="field inline-field">
-            <label for="scenarioName">Scenario name</label>
-            <input id="scenarioName" type="text" placeholder="e.g. Spring Cut" />
-          </div>
-
-          <button id="saveScenarioButton" class="button full-width-mobile" type="button">
-            Save current state
-          </button>
-
+          <div class="result-line"><span>Weight difference</span><strong id="weightDiffText">No change</strong></div>
+          <div class="result-line"><span>Body fat change</span><strong id="fatChangeText">No change</strong></div>
+          <div class="result-line"><span>Muscle change</span><strong id="muscleChangeText">No change</strong></div>
           <ul id="scenarioList" class="scenario-list"></ul>
         </section>
 
-      </section>
-
-      <!-- Chart -->
-      <section class="card chart-card">
-        <h2>Body Composition Chart</h2>
-        <p class="card-subtitle">Current vs What-If (Stacked)</p>
-        <canvas id="compositionChart"></canvas>
-      </section>
-    </div>
-
-    <div class="tab-panel" id="workoutTab" role="tabpanel" hidden>
-      <section class="cards-grid">
         <section class="card">
-          <h2>Build a Workout</h2>
-          <p class="card-subtitle">Start with a name, then stack exercises with weight, reps, and sets.</p>
-
-          <div class="field">
-            <label for="workoutName">Workout name</label>
-            <input id="workoutName" type="text" placeholder="e.g. Push Day" />
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Visuals</p>
+              <h2>Composition chart</h2>
+              <p class="card-subtitle">Stacked comparison between now and your goal.</p>
+            </div>
           </div>
+          <canvas id="compositionChart"></canvas>
+        </section>
+      </div>
+    </section>
 
-          <div id="exerciseRows" class="exercise-rows"></div>
+    <section class="tab-panel" id="settingsTab" role="tabpanel" hidden>
+      <div class="layout-grid">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Preferences</p>
+              <h2>Units & theme</h2>
+              <p class="card-subtitle">Saved to LocalStorage and synced with your system preference.</p>
+            </div>
+          </div>
+          <label class="field">
+            <span>Units</span>
+            <select id="unitSelect">
+              <option value="lbs">Pounds (lbs)</option>
+              <option value="kg">Kilograms (kg)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Theme</span>
+            <select id="themeSelect">
+              <option value="system">Follow system</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="contrast">High contrast</option>
+            </select>
+          </label>
+        </section>
 
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Data</p>
+              <h2>Import/Export</h2>
+              <p class="card-subtitle">CSV for spreadsheets, JSON for a full backup.</p>
+            </div>
+          </div>
           <div class="helper-row helper-row--wrap">
-            <button id="addExerciseRow" class="button button-secondary" type="button">
-              Add exercise row
-            </button>
-            <p class="helper-text" id="workoutHelper">
-              Add at least one exercise name, then save the session.
-            </p>
+            <button id="exportCsv" class="button button-secondary" type="button">Export CSV</button>
+            <button id="importCsv" class="button button-secondary" type="button">Import CSV</button>
+            <button id="exportJson" class="button" type="button">Export JSON</button>
+            <button id="importJson" class="button" type="button">Import JSON</button>
+            <input id="filePicker" type="file" accept=".csv,.json" hidden />
           </div>
-
-          <button id="saveWorkoutButton" class="button full-width-mobile" type="button">
-            Save workout
-          </button>
         </section>
 
         <section class="card">
-          <h2>Saved Workouts</h2>
-          <p class="card-subtitle">Every saved session keeps its exercises, weights, reps, and sets.</p>
-          <ul id="workoutList" class="workout-list"></ul>
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">PWA</p>
+              <h2>Install & offline</h2>
+              <p class="card-subtitle">Instant loading, home screen support, offline data stored locally.</p>
+            </div>
+          </div>
+          <ul class="feature-list">
+            <li>Install to your home screen or desktop.</li>
+            <li>Offline support keeps your data safe.</li>
+            <li>High-performance layout for mobile.</li>
+            <li>Switch themes anytime.</li>
+          </ul>
         </section>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
 
   <footer class="app-footer">
-    <p>
-      Built for “what-if” experiments — deploy on GitHub Pages and tweak freely.
-    </p>
+    <p>Everything is stored locally — no accounts, no servers. Import/export anytime.</p>
   </footer>
 
   <script src="script.js"></script>
