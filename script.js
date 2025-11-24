@@ -603,15 +603,18 @@ function initWorkoutBuilder() {
   renderWorkoutList();
 }
 
-function loadWorkoutsFromStorage() {
-  try {
-    const raw = localStorage.getItem(WORKOUT_STORAGE_KEY);
-    workouts = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(workouts)) workouts = [];
-  } catch {
-    workouts = [];
+  function loadWorkoutsFromStorage() {
+    try {
+      const raw = localStorage.getItem(WORKOUT_STORAGE_KEY);
+      workouts = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(workouts)) workouts = [];
+      workouts = workouts
+        .map((w) => normalizeWorkout(w))
+        .filter(Boolean);
+    } catch {
+      workouts = [];
+    }
   }
-}
 
 function saveWorkoutsToStorage() {
   try {
@@ -720,9 +723,9 @@ function saveWorkoutFromForm() {
     helper.textContent = "Saved! Build another session whenever you’re ready.";
 }
 
-function renderWorkoutList() {
-  const list = document.getElementById("workoutList");
-  if (!list) return;
+  function renderWorkoutList() {
+    const list = document.getElementById("workoutList");
+    if (!list) return;
 
   list.innerHTML = "";
 
@@ -755,11 +758,11 @@ function renderWorkoutList() {
     if (workout.exercises?.length) {
       const exerciseList = document.createElement("ul");
       exerciseList.className = "workout-exercises";
-      workout.exercises.forEach((ex) => {
-        const li = document.createElement("li");
-        li.textContent = formatExerciseDisplay(ex);
-        exerciseList.appendChild(li);
-      });
+        workout.exercises.forEach((ex) => {
+          const li = document.createElement("li");
+          li.textContent = formatExerciseDisplay(ex);
+          exerciseList.appendChild(li);
+        });
       titleWrap.appendChild(exerciseList);
     }
 
@@ -791,14 +794,55 @@ function summarizeWorkout(exercises) {
   return `${exercises[0]} + ${exercises.length - 1} more`;
 }
 
-function formatExerciseDisplay(ex) {
-  const parts = [];
-  if (ex.sets) parts.push(`${ex.sets} set${ex.sets === "1" ? "" : "s"}`);
-  if (ex.reps) parts.push(`${ex.reps} reps`);
-  if (ex.weight) parts.push(`@ ${ex.weight}`);
-  const suffix = parts.length ? ` — ${parts.join(" · ")}` : "";
-  return `${ex.name}${suffix}`;
-}
+  function formatExerciseDisplay(ex) {
+    const normalized = normalizeExercise(ex);
+    if (!normalized) return "";
+
+    const { name, sets, reps, weight } = normalized;
+    const parts = [];
+    if (sets) parts.push(`${sets} set${sets === "1" ? "" : "s"}`);
+    if (reps) parts.push(`${reps} reps`);
+    if (weight) parts.push(`@ ${weight}`);
+    const suffix = parts.length ? ` — ${parts.join(" · ")}` : "";
+    return `${name}${suffix}`;
+  }
+
+  function normalizeWorkout(workout) {
+    if (!workout || typeof workout !== "object") return null;
+
+    const exercises = Array.isArray(workout.exercises)
+      ? workout.exercises
+      : [];
+
+    const normalizedExercises = exercises
+      .map((ex) => normalizeExercise(ex))
+      .filter(Boolean);
+
+    return {
+      ...workout,
+      exercises: normalizedExercises,
+    };
+  }
+
+  function normalizeExercise(ex) {
+    if (typeof ex === "string") {
+      const name = ex.trim();
+      if (!name) return null;
+      return { name, weight: "", reps: "", sets: "" };
+    }
+
+    if (!ex || typeof ex !== "object") return null;
+
+    const name = ex.name || "";
+    if (!name) return null;
+
+    return {
+      name,
+      weight: ex.weight || "",
+      reps: ex.reps || "",
+      sets: ex.sets || "",
+    };
+  }
 /* ---------- Scenarios (full state) ---------- */
 
 function loadScenariosFromStorage() {
