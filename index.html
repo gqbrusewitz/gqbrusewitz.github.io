@@ -25,6 +25,7 @@
     </div>
     <nav class="tab-bar" role="tablist" aria-label="App sections">
       <button class="tab-button active" data-tab="workouts" role="tab" aria-selected="true" aria-controls="workoutsTab">Workouts</button>
+      <button class="tab-button" data-tab="library" role="tab" aria-selected="false" aria-controls="libraryTab">Exercise Library</button>
       <button class="tab-button" data-tab="analytics" role="tab" aria-selected="false" aria-controls="analyticsTab">Analytics/History</button>
       <button class="tab-button" data-tab="calculators" role="tab" aria-selected="false" aria-controls="calculatorsTab">Calculators</button>
       <button class="tab-button" data-tab="settings" role="tab" aria-selected="false" aria-controls="settingsTab">Settings</button>
@@ -65,7 +66,11 @@
             <button id="saveWorkout" class="button" type="button">Save workout</button>
           </div>
         </section>
+      </div>
+    </section>
 
+    <section class="tab-panel" id="libraryTab" role="tabpanel" hidden>
+      <div class="layout-grid">
         <section class="card">
           <div class="card-header">
             <div>
@@ -87,34 +92,6 @@
             <button id="addExerciseLibrary" class="button" type="button">Add to library</button>
           </div>
           <div class="exercise-library" id="exerciseLibrary"></div>
-        </section>
-
-        <section class="card">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Workout history</p>
-              <h2>Saved sessions</h2>
-              <p class="card-subtitle">Search, sort, and load any past workout.</p>
-            </div>
-            <div class="field">
-              <input id="historySearch" type="search" placeholder="Search title or exercise" />
-            </div>
-          </div>
-          <div class="history-controls">
-            <label class="field">
-              <span>Filter by exercise</span>
-              <input id="historyExerciseFilter" type="text" placeholder="Bench press" />
-            </label>
-            <label class="field">
-              <span>Min volume</span>
-              <input id="historyVolumeFilter" type="number" inputmode="decimal" />
-            </label>
-            <label class="field">
-              <span>Min reps</span>
-              <input id="historyRepsFilter" type="number" inputmode="decimal" />
-            </label>
-          </div>
-          <ul class="workout-list" id="workoutHistory"></ul>
         </section>
       </div>
     </section>
@@ -152,6 +129,34 @@
             </div>
           </div>
           <ul class="pr-list" id="prList"></ul>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Workout history</p>
+              <h2>Saved sessions</h2>
+              <p class="card-subtitle">Search, sort, and load any past workout.</p>
+            </div>
+            <div class="field">
+              <input id="historySearch" type="search" placeholder="Search title or exercise" />
+            </div>
+          </div>
+          <div class="history-controls">
+            <label class="field">
+              <span>Filter by exercise</span>
+              <input id="historyExerciseFilter" type="text" placeholder="Bench press" />
+            </label>
+            <label class="field">
+              <span>Min volume</span>
+              <input id="historyVolumeFilter" type="number" inputmode="decimal" />
+            </label>
+            <label class="field">
+              <span>Min reps</span>
+              <input id="historyRepsFilter" type="number" inputmode="decimal" />
+            </label>
+          </div>
+          <ul class="workout-list" id="workoutHistory"></ul>
         </section>
       </div>
     </section>
