@@ -89,7 +89,7 @@ function initTabs() {
   const buttons = qsa(".tab-button");
   const panels = qsa(".tab-panel");
   const stored = localStorage.getItem(STORAGE_KEYS.tab) || "workouts";
-  const allowed = ["workouts", "analytics", "calculators", "settings"];
+  const allowed = ["workouts", "library", "analytics", "calculators", "settings"];
   const initial = allowed.includes(stored) ? stored : "workouts";
   setActiveTab(initial, buttons, panels);
   buttons.forEach((btn) =>
