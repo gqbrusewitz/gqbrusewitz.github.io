@@ -144,6 +144,201 @@ const DEFAULT_EXERCISES = [
   { name: "Bridge Pose", category: "Stretching" },
   { name: "Happy Baby Pose", category: "Stretching" },
   { name: "Legs Up the Wall", category: "Stretching" },
+
+  // Olympic Lifts & Variations
+  { name: "Clean", category: "Olympic" },
+  { name: "Power Clean", category: "Olympic" },
+  { name: "Hang Clean", category: "Olympic" },
+  { name: "Snatch", category: "Olympic" },
+  { name: "Power Snatch", category: "Olympic" },
+  { name: "Hang Snatch", category: "Olympic" },
+  { name: "Clean and Jerk", category: "Olympic" },
+  { name: "Push Press", category: "Olympic" },
+  { name: "Push Jerk", category: "Olympic" },
+  { name: "Split Jerk", category: "Olympic" },
+  { name: "Muscle Snatch", category: "Olympic" },
+  { name: "Muscle Clean", category: "Olympic" },
+
+  // Powerlifting Variations
+  { name: "Box Squat", category: "Powerlifting" },
+  { name: "Pause Squat", category: "Powerlifting" },
+  { name: "Pause Bench Press", category: "Powerlifting" },
+  { name: "Board Press", category: "Powerlifting" },
+  { name: "Floor Press", category: "Powerlifting" },
+  { name: "Pin Press", category: "Powerlifting" },
+  { name: "Deficit Deadlift", category: "Powerlifting" },
+  { name: "Pause Deadlift", category: "Powerlifting" },
+  { name: "Block Pull", category: "Powerlifting" },
+  { name: "Rack Pull", category: "Powerlifting" },
+  { name: "Speed Squats", category: "Powerlifting" },
+  { name: "Speed Bench", category: "Powerlifting" },
+  { name: "Speed Deadlifts", category: "Powerlifting" },
+
+  // Cardio & Conditioning
+  { name: "Running", category: "Cardio" },
+  { name: "Sprints", category: "Cardio" },
+  { name: "Rowing", category: "Cardio" },
+  { name: "Assault Bike", category: "Cardio" },
+  { name: "Jump Rope", category: "Cardio" },
+  { name: "Burpees", category: "Cardio" },
+  { name: "Box Jumps", category: "Cardio" },
+  { name: "Jumping Jacks", category: "Cardio" },
+  { name: "High Knees", category: "Cardio" },
+  { name: "Butt Kicks", category: "Cardio" },
+  { name: "Battle Ropes", category: "Cardio" },
+  { name: "Sled Push", category: "Cardio" },
+  { name: "Sled Pull", category: "Cardio" },
+  { name: "Prowler Push", category: "Cardio" },
+  { name: "Farmer's Walk", category: "Cardio" },
+  { name: "Stair Climber", category: "Cardio" },
+  { name: "Elliptical", category: "Cardio" },
+  { name: "Cycling", category: "Cardio" },
+  { name: "Swimming", category: "Cardio" },
+
+  // Bodyweight Exercises
+  { name: "Handstand Push-Up", category: "Bodyweight" },
+  { name: "Pistol Squat", category: "Bodyweight" },
+  { name: "Archer Push-Up", category: "Bodyweight" },
+  { name: "Pike Push-Up", category: "Bodyweight" },
+  { name: "Decline Push-Up", category: "Bodyweight" },
+  { name: "Wide Push-Up", category: "Bodyweight" },
+  { name: "Clapping Push-Up", category: "Bodyweight" },
+  { name: "Muscle-Up", category: "Bodyweight" },
+  { name: "Front Lever", category: "Bodyweight" },
+  { name: "Back Lever", category: "Bodyweight" },
+  { name: "Human Flag", category: "Bodyweight" },
+  { name: "Planche", category: "Bodyweight" },
+  { name: "Skin the Cat", category: "Bodyweight" },
+  { name: "Wall Sit", category: "Bodyweight" },
+  { name: "Glute Bridge", category: "Bodyweight" },
+  { name: "Superman Hold", category: "Bodyweight" },
+
+  // Functional & CrossFit
+  { name: "Thruster", category: "Functional" },
+  { name: "Wall Ball", category: "Functional" },
+  { name: "Kettlebell Swing", category: "Functional" },
+  { name: "Turkish Get-Up", category: "Functional" },
+  { name: "Kettlebell Snatch", category: "Functional" },
+  { name: "Kettlebell Clean", category: "Functional" },
+  { name: "Goblet Squat", category: "Functional" },
+  { name: "Devil's Press", category: "Functional" },
+  { name: "Dumbbell Snatch", category: "Functional" },
+  { name: "Sandbag Carry", category: "Functional" },
+  { name: "Sandbag Clean", category: "Functional" },
+  { name: "Bear Crawl", category: "Functional" },
+  { name: "Crab Walk", category: "Functional" },
+  { name: "Duck Walk", category: "Functional" },
+
+  // Strongman
+  { name: "Atlas Stone Lift", category: "Strongman" },
+  { name: "Log Press", category: "Strongman" },
+  { name: "Yoke Walk", category: "Strongman" },
+  { name: "Tire Flip", category: "Strongman" },
+  { name: "Axle Press", category: "Strongman" },
+  { name: "Car Deadlift", category: "Strongman" },
+  { name: "Keg Carry", category: "Strongman" },
+  { name: "Circus Dumbbell Press", category: "Strongman" },
+
+  // Plyometrics
+  { name: "Depth Jump", category: "Plyometric" },
+  { name: "Broad Jump", category: "Plyometric" },
+  { name: "Tuck Jump", category: "Plyometric" },
+  { name: "Lateral Bound", category: "Plyometric" },
+  { name: "Single-Leg Box Jump", category: "Plyometric" },
+  { name: "Plyo Push-Up", category: "Plyometric" },
+  { name: "Medicine Ball Slam", category: "Plyometric" },
+  { name: "Medicine Ball Throw", category: "Plyometric" },
+  { name: "Bounding", category: "Plyometric" },
+
+  // Isolation & Accessories
+  { name: "Cable Crossover", category: "Isolation" },
+  { name: "Chest Fly Machine", category: "Isolation" },
+  { name: "Leg Abduction", category: "Isolation" },
+  { name: "Leg Adduction", category: "Isolation" },
+  { name: "Hip Abduction", category: "Isolation" },
+  { name: "Hip Adduction", category: "Isolation" },
+  { name: "Reverse Fly", category: "Isolation" },
+  { name: "Cable Lateral Raise", category: "Isolation" },
+  { name: "Reverse Pec Deck", category: "Isolation" },
+  { name: "Wrist Curl", category: "Isolation" },
+  { name: "Reverse Wrist Curl", category: "Isolation" },
+  { name: "Forearm Curl", category: "Isolation" },
+  { name: "Zottman Curl", category: "Isolation" },
+  { name: "Spider Curl", category: "Isolation" },
+  { name: "Waiter Curl", category: "Isolation" },
+  { name: "Drag Curl", category: "Isolation" },
+  { name: "21s", category: "Isolation" },
+  { name: "JM Press", category: "Isolation" },
+  { name: "Tate Press", category: "Isolation" },
+  { name: "Lying Triceps Extension", category: "Isolation" },
+
+  // Machines
+  { name: "Smith Machine Squat", category: "Machine" },
+  { name: "Smith Machine Bench", category: "Machine" },
+  { name: "Leg Press Machine", category: "Machine" },
+  { name: "Chest Press Machine", category: "Machine" },
+  { name: "Shoulder Press Machine", category: "Machine" },
+  { name: "Lat Pulldown Machine", category: "Machine" },
+  { name: "Cable Row Machine", category: "Machine" },
+  { name: "Preacher Curl Machine", category: "Machine" },
+  { name: "Leg Curl Machine", category: "Machine" },
+  { name: "Leg Extension Machine", category: "Machine" },
+  { name: "Hack Squat Machine", category: "Machine" },
+  { name: "Pendulum Squat", category: "Machine" },
+  { name: "Belt Squat", category: "Machine" },
+  { name: "Hip Thrust Machine", category: "Machine" },
+
+  // Rehabilitation & Prehab
+  { name: "Band Pull-Apart", category: "Prehab" },
+  { name: "External Rotation", category: "Prehab" },
+  { name: "Internal Rotation", category: "Prehab" },
+  { name: "YTW Raises", category: "Prehab" },
+  { name: "Scapular Push-Up", category: "Prehab" },
+  { name: "Wall Slide", category: "Prehab" },
+  { name: "Band Triceps Extension", category: "Prehab" },
+  { name: "Clamshells", category: "Prehab" },
+  { name: "Fire Hydrants", category: "Prehab" },
+  { name: "Monster Walks", category: "Prehab" },
+  { name: "Lateral Band Walk", category: "Prehab" },
+  { name: "Ankle Mobility", category: "Prehab" },
+  { name: "Single-Leg Deadlift", category: "Prehab" },
+  { name: "Copenhagen Plank", category: "Prehab" },
+
+  // Additional Upper Body
+  { name: "Landmine Press", category: "Upper" },
+  { name: "Landmine Row", category: "Upper" },
+  { name: "Svend Press", category: "Upper" },
+  { name: "Guillotine Press", category: "Upper" },
+  { name: "Larsen Press", category: "Upper" },
+  { name: "Spoto Press", category: "Upper" },
+  { name: "Bradford Press", category: "Upper" },
+  { name: "Z Press", category: "Upper" },
+  { name: "Viking Press", category: "Upper" },
+  { name: "Meadows Row", category: "Back" },
+  { name: "Seal Row", category: "Back" },
+  { name: "Helms Row", category: "Back" },
+  { name: "Kroc Row", category: "Back" },
+  { name: "Batwing Row", category: "Back" },
+
+  // Additional Lower Body
+  { name: "Hatfield Squat", category: "Lower" },
+  { name: "Zercher Squat", category: "Lower" },
+  { name: "Anderson Squat", category: "Lower" },
+  { name: "Sissy Squat", category: "Lower" },
+  { name: "Spanish Squat", category: "Lower" },
+  { name: "Poliquin Step-Up", category: "Lower" },
+  { name: "Peterson Step-Up", category: "Lower" },
+  { name: "Cossack Squat", category: "Lower" },
+  { name: "Curtsy Lunge", category: "Lower" },
+  { name: "Skater Squat", category: "Lower" },
+  { name: "Reverse Hyperextension", category: "Posterior" },
+  { name: "Back Extension", category: "Posterior" },
+  { name: "45-Degree Back Extension", category: "Posterior" },
+  { name: "Trap Bar Deadlift", category: "Posterior" },
+  { name: "Snatch Grip Deadlift", category: "Posterior" },
+  { name: "Jefferson Deadlift", category: "Posterior" },
+  { name: "B-Stance RDL", category: "Posterior" },
+  { name: "Single-Leg RDL", category: "Posterior" },
 ];
 
 let workouts = [];
@@ -437,6 +632,42 @@ function saveWorkout() {
   renderHistory();
   updateAnalytics();
   resetWorkoutForm();
+}
+
+function saveAsWorkout() {
+  const data = gatherWorkout();
+  if (!data.exercises.length) {
+    alert("Add at least one exercise with sets");
+    return;
+  }
+  const newTitle = prompt("Enter workout title:", data.title);
+  if (!newTitle) return;
+  data.title = newTitle;
+  data.id = crypto.randomUUID();
+  workouts.unshift(data);
+  saveToStorage(STORAGE_KEYS.workouts, workouts);
+  renderHistory();
+  updateAnalytics();
+  alert(`Workout saved as "${newTitle}"`);
+}
+
+function loadWorkoutFromButton() {
+  if (!workouts.length) {
+    alert("No saved workouts yet. Create and save a workout first!");
+    return;
+  }
+  const workoutList = workouts
+    .map((w, idx) => `${idx + 1}. ${w.title} (${w.date}) - ${w.totals.sets} sets, ${w.totals.volume.toFixed(0)} volume`)
+    .join("\n");
+  const choice = prompt(`Select a workout to load (enter number 1-${workouts.length}):\n\n${workoutList}`);
+  if (!choice) return;
+  const idx = parseInt(choice) - 1;
+  if (idx >= 0 && idx < workouts.length) {
+    loadWorkoutIntoForm(workouts[idx]);
+    alert(`Loaded: ${workouts[idx].title}`);
+  } else {
+    alert("Invalid selection");
+  }
 }
 
 function resetWorkoutForm() {
@@ -993,6 +1224,8 @@ function boot() {
   initImportExport();
   initUnitSelect();
   qs("#addExercise").addEventListener("click", () => addExerciseCard());
+  qs("#loadWorkout").addEventListener("click", loadWorkoutFromButton);
+  qs("#saveAsWorkout").addEventListener("click", saveAsWorkout);
   qs("#saveWorkout").addEventListener("click", saveWorkout);
   qs("#historySearch").addEventListener("input", renderHistory);
   qs("#historyExerciseFilter").addEventListener("input", renderHistory);
